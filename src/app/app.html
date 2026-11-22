@@ -1,5 +1,23 @@
-<main>
-  <h1>Groundsman</h1>
-  <p>Squad planner for long-running Football Manager saves.</p>
-</main>
-<router-outlet />
+<div class="shell">
+  <nav class="rail" aria-label="Main">
+    <p class="wordmark">Groundsman</p>
+    <div class="save">
+      <span class="crest" aria-hidden="true">{{ store.save().shortCode }}</span>
+      <span class="save-text">
+        <strong>{{ store.save().club }}</strong>
+        <small>{{ store.save().game }} · {{ store.save().synthetic ? 'Sample save, synthetic data' : 'Imported save' }}</small>
+      </span>
+    </div>
+    <ul class="nav">
+      <li><a routerLink="/depth-chart" routerLinkActive="on" ariaCurrentWhenActive="page">Depth chart</a></li>
+      @for (item of upcoming; track item) {
+        <li><span class="nav-soon" aria-disabled="true">{{ item }}<small>Soon</small></span></li>
+      }
+    </ul>
+    <p class="rail-foot">
+      <app-icon name="device" />
+      <span>Saved in this browser<small>Last import {{ importDate(store.save().lastImport) }}</small></span>
+    </p>
+  </nav>
+  <router-outlet />
+</div>

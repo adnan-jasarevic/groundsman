@@ -1,0 +1,136 @@
+<div class="board" cdkDropListGroup>
+  <header class="topbar">
+    <h1>Depth chart</h1>
+    <div class="controls">
+      <label class="field inline">
+        <span>Formation</span>
+        <select (change)="onSelect($event, 'formation')">
+          @for (f of formations; track f.id) { <option [value]="f.id" [selected]="f.id === store.formationId()">{{ f.name }}</option> }
+        </select>
+      </label>
+      <label class="field inline">
+        <span>Depth</span>
+        <select (change)="onSelect($event, 'tiers')">
+          @for (t of tierChoices; track t) { <option [value]="t" [selected]="t === store.tiers()">{{ t }} tiers</option> }
+        </select>
+      </label>
+      <button type="button" class="btn ghost" (click)="store.resetPlan()" title="Rebuild this formation's plan from the squad"
+        aria-label="Rebuild plan">
+        <app-icon name="refresh" /><span>Rebuild</span>
+      </button>
+    </div>
+
+    <fieldset class="scrubber">
+      <legend class="sr-only">Season</legend>
+      @for (s of store.seasons(); track s; let i = $index) {
+        <label [class.on]="store.season() === s">
+          <input type="radio" name="season" [value]="s" [checked]="store.season() === s" (change)="setSeason(s)" />
+          <span class="season">{{ seasonLabel(s) }}</span>
+          @if (i === 0) { <span class="now">Now</span> }
+        </label>
+      }
+    </fieldset>
+  </header>
+
+  <div class="work">
+    <div class="pitch-wrap">
+      <div class="pitch" [style.--pitch-min.px]="pitchMin()" [class.dragging]="store.dragging()" [attr.data-formation]="store.formationId()">
+        <div class="markings" aria-hidden="true">
+          <i class="half"></i><i class="circle"></i><i class="spot"></i>
+          <i class="box top"></i><i class="box bottom"></i><i class="six top"></i><i class="six bottom"></i>
+        </div>
+        <div class="grid" aria-hidden="true"></div>
+        @if (mowKey() > 0) {
+          @for (k of [mowKey()]; track k) { <div class="mow" aria-hidden="true"></div> }
+        }
+
+        @for (slot of orderedSlots(); track slot.id) {
+          <section class="slot" [style.--x]="slot.x" [style.--y]="slot.y" [attr.data-line]="slot.line"
+            [class.worn]="store.wornSlots().has(slot.id)" [attr.aria-label]="store.slotLabel(slot.id)">
+            <div class="wear" aria-hidden="true"></div>
+            <h2 class="slot-head">
+              <span>{{ label[slot.position] }}</span>
+              @if (store.wornSlots().get(slot.id); as worn) {
+                <span class="tag earth">{{ worn === 'empty' ? 'Empty' : 'No cover' }}</span>
+              }
+            </h2>
+            <div class="tiers" cdkDropList [cdkDropListData]="slot.id" (cdkDropListDropped)="drop($event)">
+              @for (p of players(slot); track p.id; let i = $index) {
+                <div class="tier" cdkDrag [cdkDragData]="p.id" (cdkDragStarted)="store.dragging.set(true)"
+                  (cdkDragEnded)="store.dragging.set(false)">
+                  <app-player-chip [player]="p" [tier]="i" [position]="slot.position" [slotLabel]="store.slotLabel(slot.id)" />
+                </div>
+              }
+              @for (e of empties(slot); track e) {
+                <div class="empty" [attr.data-tier]="e === 0 ? 'starter' : e === 1 ? 'backup' : 'depth'">
+                  Drop a {{ tierName(e) }}
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+      <p class="notice" aria-live="polite">{{ store.notice() }}</p>
+    </div>
+
+    <aside class="side">
+      @if (store.selected()) {
+        <app-player-detail />
+      } @else {
+        <section class="panel">
+          <h2 class="panel-title">{{ seasonLabel(store.season()) }} flags</h2>
+          @if (store.flags().length) {
+            <ul class="flags">
+              @for (f of store.flags(); track f.text) {
+                <li [attr.data-severity]="f.severity" [attr.data-kind]="f.kind">
+                  <app-icon [name]="f.kind === 'ageing' ? 'hourglass' : f.kind.startsWith('contract') ? 'clock' : 'alert'" />
+                  <span>{{ f.text }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">Every position has cover and no contract runs out this season.</p>
+          }
+        </section>
+      }
+
+      <section class="panel">
+        <h2 class="panel-title">Shortlist</h2>
+        <p class="hint">Drag a target onto a position to see where they fit.</p>
+        <div class="list" cdkDropList [cdkDropListData]="SHORTLIST" [cdkDropListEnterPredicate]="acceptTargetsOnly"
+          [cdkDropListSortingDisabled]="true" (cdkDropListDropped)="drop($event)">
+          @for (t of store.shortlist(); track t.id) {
+            <div class="target-row" cdkDrag [cdkDragData]="t.id" [cdkDragDisabled]="placedTargets().has(t.id)"
+              (cdkDragStarted)="store.dragging.set(true)" (cdkDragEnded)="store.dragging.set(false)">
+              <button type="button" class="row-btn" (click)="store.selectedId.set(t.id)" [class.placed]="placedTargets().has(t.id)">
+                <app-icon name="target" />
+                <span class="row-name">{{ short(t) }}<small>{{ bestPositions(t) }} · {{ t.age }}</small></span>
+                <app-stars [ability]="t.ability" [potential]="t.potential" />
+                @if (placedTargets().has(t.id)) { <span class="tag amber">On plan</span> }
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel grow">
+        <h2 class="panel-title">Bench <span class="count">{{ store.bench().length }}</span></h2>
+        <div class="list bench" cdkDropList [cdkDropListData]="BENCH" [cdkDropListEnterPredicate]="acceptSquadOnly"
+          [cdkDropListSortingDisabled]="true" (cdkDropListDropped)="drop($event)">
+          @for (p of store.bench(); track p.id) {
+            <div class="bench-row" cdkDrag [cdkDragData]="p.id" (cdkDragStarted)="store.dragging.set(true)"
+              (cdkDragEnded)="store.dragging.set(false)">
+              <button type="button" class="row-btn" (click)="store.selectedId.set(p.id)" [class.left]="contractStateOf(p) === 'left'">
+                <span class="row-name">{{ short(p) }}<small>{{ bestPositions(p) }}</small></span>
+                <app-stars [ability]="p.ability" [potential]="p.potential" />
+                <span class="contract" [attr.data-state]="contractStateOf(p)">{{ contractYear(p) }}</span>
+              </button>
+            </div>
+          } @empty {
+            <p class="muted">Everyone in the squad has a place in this formation.</p>
+          }
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

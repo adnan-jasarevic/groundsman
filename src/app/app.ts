@@ -1,9 +1,19 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PlanStore } from './state/plan-store';
+import { Icon } from './ui/icon';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
   templateUrl: './app.html',
 })
-export class App {}
+export class App {
+  protected readonly store = inject(PlanStore);
+  protected readonly upcoming = ['Season timeline', 'Shortlist', 'Squad', 'Import from FM'];
+
+  protected importDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+}
