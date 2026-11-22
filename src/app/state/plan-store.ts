@@ -1,5 +1,5 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
-import { SAMPLE_SAVE } from '../data/sample-save';
+import { computed, effect, inject, Injectable, InjectionToken, signal } from '@angular/core';
+import { DEV_SAVE } from '../data/dev-save';
 import { formationById, FORMATIONS } from '../domain/formations';
 import { DepthPlan, Player, POSITION_LABEL, SaveFile } from '../domain/models';
 import { autoAssign, contractState, seasonFlags, shortName } from '../domain/projection';
@@ -33,16 +33,20 @@ function persist(saveId: string, value: StoredPlans): void {
   }
 }
 
+/** The save the planner opens. Defaults to the development squad; specs provide their own. */
+export const SAVE = new InjectionToken<SaveFile>('SAVE', { providedIn: 'root', factory: () => DEV_SAVE });
+
 @Injectable({ providedIn: 'root' })
 export class PlanStore {
-  readonly save = signal<SaveFile>(SAMPLE_SAVE);
+  private readonly initial = inject(SAVE);
+  readonly save = signal<SaveFile>(this.initial);
   readonly baseSeason = computed(() => this.save().currentSeason);
   readonly seasons = computed(() =>
     Array.from({ length: SEASONS_AHEAD + 1 }, (_, i) => this.baseSeason() + i),
   );
-  readonly season = signal(SAMPLE_SAVE.currentSeason);
+  readonly season = signal(this.initial.currentSeason);
 
-  private readonly stored = load(SAMPLE_SAVE.id);
+  private readonly stored = load(this.initial.id);
   readonly formationId = signal(this.stored?.formationId ?? FORMATIONS[0].id);
   readonly tiers = signal(this.stored?.tiers ?? DEFAULT_TIERS);
   private readonly plans = signal<Record<string, DepthPlan>>(this.stored?.plans ?? {});

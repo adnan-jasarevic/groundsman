@@ -1,7 +1,7 @@
-import { Player, SaveFile } from '../domain/models';
+import { Player, SaveFile } from '../app/domain/models';
 
-// Synthetic demo save. Every club and player here is fictional; a real FM
-// export replaces it once import is built.
+// Fictional test squad. Every club and player here is invented; specs use it
+// so tests never depend on real players' details.
 const players: Player[] = [
   { id: 'p01', name: 'Tom Ashworth', age: 30, nationality: 'ENG', positions: { GK: 4 }, ability: 3.5, potential: 3.5, contractEnd: 2028 },
   { id: 'p02', name: 'Kai Meier', age: 24, nationality: 'GER', positions: { GK: 4 }, ability: 3, potential: 3.5, contractEnd: 2029 },
@@ -39,14 +39,14 @@ const shortlist: Player[] = [
   { id: 't03', name: 'Iker Salazar', age: 19, nationality: 'ESP', positions: { AML: 4, AMR: 3 }, ability: 2.5, potential: 4.5, target: true },
 ];
 
-export const SAMPLE_SAVE: SaveFile = {
+export const FICTIONAL_SAVE: SaveFile = {
   id: 'sample-harrowgate',
   club: 'Harrowgate Town',
   shortCode: 'HT',
   game: 'FM26',
   currentSeason: 2026,
-  lastImport: '2026-08-14',
-  synthetic: true,
+  dataAsOf: '2026-08-14',
+  dataNote: 'Fictional test squad',
   players,
   shortlist,
 };

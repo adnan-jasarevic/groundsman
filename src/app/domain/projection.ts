@@ -167,11 +167,13 @@ export function seasonFlags(
 }
 
 export function surname(player: Player): string {
+  if (player.known) return player.known;
   const parts = player.name.split(' ');
   return parts[parts.length - 1];
 }
 
 export function shortName(player: Player): string {
+  if (player.known) return player.known;
   const parts = player.name.split(' ');
   return parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : player.name;
 }
