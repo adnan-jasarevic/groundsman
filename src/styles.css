@@ -341,8 +341,9 @@ input {
 }
 
 .tag.earth {
-  background: var(--earth);
-  color: var(--ink);
+  background: var(--ink);
+  color: #ecd9bd;
+  box-shadow: 0 0 0 1px var(--earth-deep);
 }
 
 .tag.amber,
@@ -455,8 +456,8 @@ input {
 .pitch-wrap {
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: 8px;
-  padding: 20px 24px 12px;
+  gap: 4px;
+  padding: 16px 24px 8px;
   min-width: 0;
 }
 
@@ -465,8 +466,8 @@ input {
 .pitch {
   --chalk-line: rgba(239, 236, 226, 0.82);
   position: relative;
-  min-height: var(--pitch-min, 760px);
-  height: calc(100vh - 140px);
+  min-height: var(--pitch-min, 680px);
+  height: calc(100vh - 116px);
   border-radius: 6px;
   background: repeating-linear-gradient(180deg, var(--turf-a) 0 10%, var(--turf-b) 10% 20%);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px -18px rgba(0, 0, 0, 0.7);
@@ -514,15 +515,15 @@ input {
 }
 
 .markings .box {
-  left: 26%;
-  right: 26%;
-  height: 14%;
+  left: 22%;
+  right: 22%;
+  height: 13%;
 }
 
 .markings .six {
-  left: 38%;
-  right: 38%;
-  height: 5%;
+  left: 42%;
+  right: 42%;
+  height: 2.6%;
 }
 
 .markings .top {
@@ -541,8 +542,8 @@ input {
   pointer-events: none;
   opacity: 0;
   background:
-    repeating-linear-gradient(90deg, rgba(239, 236, 226, 0.16) 0 1px, transparent 1px 20%),
-    repeating-linear-gradient(180deg, rgba(239, 236, 226, 0.16) 0 1px, transparent 1px 10%);
+    repeating-linear-gradient(90deg, rgba(239, 236, 226, 0.32) 0 1px, transparent 1px 20%),
+    repeating-linear-gradient(180deg, rgba(239, 236, 226, 0.32) 0 1px, transparent 1px 10%);
   transition: opacity 0.2s var(--ease-out);
 }
 
@@ -579,10 +580,11 @@ input {
 /* ---------- Slots ---------- */
 
 .slot {
-  --w: min(200px, 24%);
+  /* Four slots must fit side by side inside the touchlines (inset 17px each side). */
+  --w: min(200px, calc((100% - 40px) / 4 - 8px));
   position: absolute;
   z-index: 1;
-  left: calc(var(--x) * 1%);
+  left: calc(20px + var(--x) * (100% - 40px) / 100);
   top: calc(var(--y) * 1%);
   width: var(--w);
   translate: -50% 0;
@@ -592,13 +594,14 @@ input {
   position: absolute;
   left: 50%;
   top: 30%;
-  width: 150%;
-  height: 170%;
+  width: 158%;
+  height: 165%;
   translate: -50% -30%;
   z-index: -1;
-  border-radius: 50%;
+  border-radius: 46% 54% 50% 50% / 52% 44% 56% 48%;
   opacity: 0;
-  background: radial-gradient(closest-side, rgba(180, 140, 90, 0.92), rgba(160, 122, 76, 0.55) 55%, transparent);
+  background: radial-gradient(closest-side, #b48c5a 0 58%, #a07a4c 74%, rgba(138, 106, 66, 0.55) 88%, transparent);
+  filter: url(#worn-earth);
   transition: opacity 0.6s var(--ease-out);
 }
 
@@ -610,12 +613,21 @@ input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 20px;
+  min-height: 18px;
   margin-bottom: 4px;
   font: 700 14px/1 var(--cond);
   letter-spacing: 0.08em;
   color: var(--chalk);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.slot-head .twin {
+  display: none;
+  margin-left: 6px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--chalk-2);
 }
 
 .slot-head .tag {
@@ -625,7 +637,7 @@ input {
 .tiers {
   display: grid;
   gap: 4px;
-  min-height: 34px;
+  min-height: 28px;
 }
 
 .tier {
@@ -635,13 +647,43 @@ input {
 .empty {
   display: flex;
   align-items: center;
-  min-height: 31px;
+  min-height: 28px;
   padding: 0 9px;
   border: 1.5px dashed rgba(239, 236, 226, 0.55);
   border-radius: 5px;
   font-size: 12px;
   color: var(--chalk);
   background: rgba(27, 58, 35, 0.9);
+}
+
+.empty.quiet {
+  min-height: 0;
+  height: 6px;
+  margin: 0 30%;
+  padding: 0;
+  border-width: 0 0 2px;
+  border-radius: 0;
+  border-color: rgba(239, 236, 226, 0.45);
+  background: none;
+  overflow: hidden;
+  transition: height 0.2s var(--ease-out), margin 0.2s var(--ease-out);
+}
+
+.empty.quiet span {
+  opacity: 0;
+}
+
+.pitch.dragging .empty.quiet {
+  height: 28px;
+  margin: 0;
+  padding: 0 9px;
+  border-width: 1.5px;
+  border-radius: 5px;
+  background: rgba(27, 58, 35, 0.9);
+}
+
+.pitch.dragging .empty.quiet span {
+  opacity: 1;
 }
 
 .empty[data-tier='starter'] {
@@ -657,8 +699,8 @@ input {
   align-items: center;
   gap: 4px;
   width: 100%;
-  min-height: 31px;
-  padding: 5px 7px;
+  min-height: 28px;
+  padding: 4px 7px;
   border-radius: 5px;
   border: 1.5px solid var(--chalk);
   background: transparent;
@@ -796,9 +838,18 @@ input {
 }
 
 .notice {
-  min-height: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  min-height: 22px;
   font-size: 13px;
   color: var(--chalk-2);
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
 }
 
 /* ---------- Side panel ---------- */
@@ -1077,8 +1128,21 @@ input {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1366px) {
+  .shell {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+
   .work {
-    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-columns: minmax(0, 1fr) 264px;
+  }
+
+  .pitch-wrap {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .chip .name {
+    font-size: 14px;
   }
 
   .side {
@@ -1199,6 +1263,10 @@ input {
   .wear {
     width: 110%;
     height: 140%;
+  }
+
+  .slot-head .twin {
+    display: inline;
   }
 
   .side {

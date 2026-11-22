@@ -37,8 +37,8 @@ export class DepthChart {
     [...this.store.formation().slots].sort((a, b) => a.y - b.y || a.x - b.x),
   );
 
-  /** Each formation row gets ~18.6% of the pitch; keep the deepest stack inside it. */
-  protected readonly pitchMin = computed(() => Math.round((24 + this.store.tiers() * 35 + 14) / 0.186));
+  /** Each formation row gets ~18.5% of the pitch; keep the deepest stack inside it. */
+  protected readonly pitchMin = computed(() => Math.round((22 + this.store.tiers() * 32 + 8) / 0.185));
 
   protected readonly placedTargets = computed(
     () => new Set(this.store.shortlist().filter((t) => this.store.placedIds().has(t.id)).map((t) => t.id)),
@@ -56,6 +56,11 @@ export class DepthChart {
   }
 
   protected tierName = tierName;
+
+  /** "left" / "right" / "centre" for twin positions, shown on the phone list. */
+  protected twin(slot: FormationSlot): string {
+    return this.store.slotLabel(slot.id).slice(POSITION_LABEL[slot.position].length).trim();
+  }
 
   protected bestPositions(p: Player): string {
     return (Object.entries(p.positions) as [PositionCode, number][])

@@ -16,7 +16,7 @@ import { Stars } from '../ui/stars';
       [attr.aria-pressed]="store.selectedId() === player().id" [attr.aria-label]="aria()"
       (click)="store.selectedId.set(store.selectedId() === player().id ? null : player().id)">
       <span class="name" [attr.title]="player().name">{{ name() }}</span>
-      <app-stars [ability]="ability()" [potential]="player().potential" [size]="8" />
+      <app-stars [ability]="ability()" [potential]="player().potential" [size]="10" />
       @if (player().target) {
         <span class="contract target-mark"><app-icon name="target" [size]="14" /></span>
       } @else {

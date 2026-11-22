@@ -51,6 +51,8 @@ export class PlanStore {
   readonly dragging = signal(false);
   /** Polite announcement for screen readers and the inline notice line. */
   readonly notice = signal('');
+  /** One-step undo offered next to the notice, cleared by the next action. */
+  readonly undo = signal<(() => void) | null>(null);
 
   readonly formation = computed(() => formationById(this.formationId()));
 
@@ -128,7 +130,7 @@ export class PlanStore {
 
   setFormation(id: string): void {
     this.formationId.set(id);
-    this.notice.set(`Formation changed to ${formationById(id).name}`);
+    this.say(`Formation changed to ${formationById(id).name}`);
   }
 
   setTiers(tiers: number): void {
@@ -141,7 +143,7 @@ export class PlanStore {
         slots[id] = slots[id].slice(0, next);
       }
     }, next);
-    this.notice.set(
+    this.say(
       dropped
         ? `Depth set to ${next} tiers, ${dropped} ${dropped === 1 ? 'player' : 'players'} moved to the bench`
         : `Depth set to ${next} tiers`,
@@ -158,12 +160,25 @@ export class PlanStore {
       if (!to) return;
       const list = slots[to].filter((id) => id !== playerId);
       list.splice(Math.min(index, list.length), 0, playerId);
-      if (list.length > this.tiers()) pushed = list.pop();
+      if (list.length > this.tiers()) {
+        // Push out someone who has already left before anyone still at the club.
+        const season = this.season();
+        let at = -1;
+        for (let i = list.length - 1; i >= 0; i--) {
+          const p = this.byId().get(list[i]);
+          if (list[i] !== playerId && p && contractState(p, season) === 'left') {
+            at = i;
+            break;
+          }
+        }
+        if (at < 0) at = list.length - 1;
+        pushed = list.splice(at, 1)[0];
+      }
       slots[to] = list;
     });
     const name = shortName(player);
     if (!to) {
-      this.notice.set(
+      this.say(
         player.target ? `${name} taken off the plan` : `${name} moved to the bench`,
       );
       return;
@@ -174,7 +189,7 @@ export class PlanStore {
       const out = this.byId().get(pushed)!;
       text += `. ${shortName(out)} ${this.placedIds().has(pushed) ? 'dropped out of that position' : out.target ? 'taken off the plan' : 'moved to the bench'}`;
     }
-    this.notice.set(text);
+    this.say(text);
   }
 
   /** Add a player as extra cover in another slot, keeping their current places. */
@@ -183,27 +198,41 @@ export class PlanStore {
     const player = this.byId().get(playerId);
     if (!player || list.includes(playerId)) return;
     if (list.length >= this.tiers()) {
-      this.notice.set(`${this.slotLabel(to)} is full. Raise the depth or move someone out first`);
+      this.say(`${this.slotLabel(to)} is full. Raise the depth or move someone out first`);
       return;
     }
     this.update((slots) => {
       slots[to] = [...slots[to], playerId];
     });
-    this.notice.set(`${shortName(player)} also covers ${this.slotLabel(to)}`);
+    this.say(`${shortName(player)} also covers ${this.slotLabel(to)}`);
   }
 
   resetPlan(): void {
     const id = this.formationId();
+    const previous = this.plans()[id];
     this.plans.update((plans) => {
       const next = { ...plans };
       delete next[id];
       return next;
     });
-    this.notice.set('Plan rebuilt from the squad');
+    this.say(
+      'Plan rebuilt from the squad',
+      previous
+        ? () => {
+            this.plans.update((plans) => ({ ...plans, [id]: previous }));
+            this.say('Your previous plan is back');
+          }
+        : null,
+    );
   }
 
   isLeft(player: Player): boolean {
     return contractState(player, this.season()) === 'left';
+  }
+
+  private say(text: string, undo: (() => void) | null = null): void {
+    this.notice.set(text);
+    this.undo.set(undo);
   }
 
   private update(mutate: (slots: Record<string, string[]>) => void, tiers = this.tiers()): void {
