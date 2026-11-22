@@ -1,4 +1,4 @@
-import { SAMPLE_SAVE } from '../data/sample-save';
+import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { formationById } from './formations';
 import { Player } from './models';
 import { abilityAt, ageAt, autoAssign, contractState, isAgeing, seasonFlags } from './projection';
@@ -56,8 +56,8 @@ describe('age', () => {
 
 describe('auto plan and flags', () => {
   const formation = formationById('4231w');
-  const plan = autoAssign(formation, SAMPLE_SAVE.players, 3);
-  const byId = new Map(SAMPLE_SAVE.players.map((p) => [p.id, p]));
+  const plan = autoAssign(formation, FICTIONAL_SAVE.players, 3);
+  const byId = new Map(FICTIONAL_SAVE.players.map((p) => [p.id, p]));
 
   it('fills every slot with a unique starter', () => {
     const starters = formation.slots.map((s) => plan.slots[s.id][0]);

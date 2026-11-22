@@ -5,7 +5,7 @@
       <span class="crest" aria-hidden="true">{{ store.save().shortCode }}</span>
       <span class="save-text">
         <strong>{{ store.save().club }}</strong>
-        <small>{{ store.save().game }} · {{ store.save().synthetic ? 'Sample save, synthetic data' : 'Imported save' }}</small>
+        <small>{{ store.save().game }} · {{ store.save().dataNote }}</small>
       </span>
     </div>
     <ul class="nav">
@@ -16,7 +16,7 @@
     </ul>
     <p class="rail-foot">
       <app-icon name="device" />
-      <span>Saved in this browser<small>Last import {{ importDate(store.save().lastImport) }}</small></span>
+      <span>Saved in this browser<small>Data as of {{ importDate(store.save().dataAsOf) }}</small></span>
     </p>
   </nav>
   <router-outlet />

@@ -46,6 +46,8 @@ export type GameVersion = 'FM24' | 'FM26' | 'FM27';
 export interface Player {
   id: string;
   name: string;
+  /** Name as fans use it on a team sheet, when the surname alone is wrong (e.g. "de Ligt", "Amad"). */
+  known?: string;
   /** Age at the start of the save's current season. */
   age: number;
   nationality: string;
@@ -81,8 +83,10 @@ export interface SaveFile {
   game: GameVersion;
   /** Start year of the current in-game season, e.g. 2026 for 2026/27. */
   currentSeason: number;
-  lastImport: string;
-  synthetic: boolean;
+  /** ISO date the squad data reflects. */
+  dataAsOf: string;
+  /** Where the data comes from, shown under the club name. */
+  dataNote: string;
   players: Player[];
   shortlist: Player[];
 }

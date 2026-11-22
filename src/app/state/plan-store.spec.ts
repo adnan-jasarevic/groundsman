@@ -1,13 +1,14 @@
 import { TestBed } from '@angular/core/testing';
+import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { contractState } from '../domain/projection';
-import { PlanStore } from './plan-store';
+import { PlanStore, SAVE } from './plan-store';
 
 describe('PlanStore', () => {
   let store: PlanStore;
 
   beforeEach(() => {
     localStorage.clear();
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [{ provide: SAVE, useValue: FICTIONAL_SAVE }] });
     store = TestBed.inject(PlanStore);
   });
 
