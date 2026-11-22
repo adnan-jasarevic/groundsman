@@ -7,3 +7,15 @@ Groundsman is an unofficial fan project. It is not affiliated with or endorsed b
 ## Status
 
 Early development.
+
+## Development
+
+Requires Node.js 22 or newer.
+
+```sh
+npm install
+npm start               # dev server at http://localhost:4200
+npm run build           # production build to dist/
+npm test -- --watch=false  # unit tests (Vitest)
+npm run lint            # ESLint with Angular rules
+```
