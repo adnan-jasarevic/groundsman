@@ -54,10 +54,15 @@
           @for (k of [mowKey()]; track k) { <div class="mow" aria-hidden="true"></div> }
         }
 
+        <div class="wear-layer" aria-hidden="true">
+          @for (slot of orderedSlots(); track slot.id) {
+            <div class="wear" [class.on]="store.wornSlots().has(slot.id)" [style.--x]="slot.x" [style.--y]="slot.y"></div>
+          }
+        </div>
+
         @for (slot of orderedSlots(); track slot.id) {
           <section class="slot" [style.--x]="slot.x" [style.--y]="slot.y" [attr.data-line]="slot.line"
             [class.worn]="store.wornSlots().has(slot.id)" [attr.aria-label]="store.slotLabel(slot.id)">
-            <div class="wear" aria-hidden="true"></div>
             <h2 class="slot-head">
               <span>{{ label[slot.position] }}@if (twin(slot); as t) { <span class="twin">{{ t }}</span> }</span>
               @if (store.wornSlots().get(slot.id); as worn) {

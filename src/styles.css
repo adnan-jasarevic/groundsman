@@ -590,14 +590,22 @@ input {
   translate: -50% 0;
 }
 
-.wear {
+/* All worn patches share one layer under every slot, so no patch paints over a neighbour. */
+.wear-layer {
   position: absolute;
-  left: 50%;
-  top: 30%;
-  width: 158%;
-  height: 165%;
-  translate: -50% -30%;
-  z-index: -1;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.wear {
+  --w: min(200px, calc((100% - 40px) / 4 - 8px));
+  position: absolute;
+  left: calc(20px + var(--x) * (100% - 40px) / 100);
+  top: calc(var(--y) * 1% + 60px);
+  width: calc(var(--w) * 1.45);
+  height: 170px;
+  translate: -50% -50%;
   border-radius: 46% 54% 50% 50% / 52% 44% 56% 48%;
   opacity: 0;
   background: radial-gradient(closest-side, #b48c5a 0 58%, #a07a4c 74%, rgba(138, 106, 66, 0.55) 88%, transparent);
@@ -605,13 +613,14 @@ input {
   transition: opacity 0.6s var(--ease-out);
 }
 
-.slot.worn .wear {
+.wear.on {
   opacity: 1;
 }
 
 .slot-head {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   align-items: center;
   min-height: 18px;
   margin-bottom: 4px;
@@ -1260,9 +1269,15 @@ input {
     translate: none;
   }
 
-  .wear {
-    width: 110%;
-    height: 140%;
+  .wear-layer {
+    display: none;
+  }
+
+  .slot.worn {
+    margin: 0 -6px;
+    padding: 6px;
+    border-radius: 10px;
+    background: radial-gradient(closest-side, #b48c5a 0 60%, rgba(160, 122, 76, 0.7) 85%, transparent) center / 120% 140% no-repeat;
   }
 
   .slot-head .twin {
