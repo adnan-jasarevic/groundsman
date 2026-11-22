@@ -7,7 +7,6 @@
   --line: #2a3b30;
   --turf-a: #2f6b3a;
   --turf-b: #3c8046;
-  --turf-deep: #24552e;
   --chalk: #efece2;
   --chalk-2: #c9c6ba;
   --chalk-3: #9aa89e;
@@ -16,8 +15,24 @@
   --earth-deep: #8a6a42;
   --amber: #e0a33a;
   --red: #d65a45;
-  --red-ink: #b23b28;
   --focus: #f3d27a;
+
+  /* Chip fills under chalk: dark turf so pitch lines never show through. */
+  --turf-chip: #1f4628;
+  --turf-chip-deep: #22482b;
+
+  /* Worn earth ramp. */
+  --earth-mid: #a07a4c;
+
+  /* Text tinted from its flag colour, readable on that flag's tint. */
+  --earth-text: #e9d6bb;
+  --earth-tag-text: #ecd9bd;
+  --red-text: #f2c3b9;
+  --red-strong-text: #f08a74;
+  --amber-text: #f1dcb2;
+
+  /* Filled stars on a chalk starter chip. */
+  --star-on-chalk: #6b4f10;
 
   --ui: 'Barlow', system-ui, sans-serif;
   --cond: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
@@ -342,7 +357,7 @@ input {
 
 .tag.earth {
   background: var(--ink);
-  color: #ecd9bd;
+  color: var(--earth-tag-text);
   box-shadow: 0 0 0 1px var(--earth-deep);
 }
 
@@ -497,8 +512,8 @@ input {
 .markings .circle {
   left: 50%;
   top: 50%;
-  width: 150px;
-  height: 150px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
   translate: -50% -50%;
 }
@@ -608,7 +623,7 @@ input {
   translate: -50% -50%;
   border-radius: 46% 54% 50% 50% / 52% 44% 56% 48%;
   opacity: 0;
-  background: radial-gradient(closest-side, #b48c5a 0 58%, #a07a4c 74%, rgba(138, 106, 66, 0.55) 88%, transparent);
+  background: radial-gradient(closest-side, var(--earth) 0 58%, var(--earth-mid) 74%, rgba(138, 106, 66, 0.55) 88%, transparent);
   filter: url(#worn-earth);
   transition: opacity 0.6s var(--ease-out);
 }
@@ -733,7 +748,7 @@ input {
   color: var(--ink);
   font-weight: 600;
   box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.45);
-  --star-fill: #6b4f10;
+  --star-fill: var(--star-on-chalk);
 }
 
 .chip[data-tier='starter'] .name {
@@ -741,13 +756,13 @@ input {
 }
 
 .chip[data-tier='backup'] {
-  background: #1f4628;
+  background: var(--turf-chip);
 }
 
 .chip[data-tier='depth'] {
   border-style: dashed;
   border-color: var(--chalk-2);
-  background: #22482b;
+  background: var(--turf-chip-deep);
 }
 
 .chip:hover {
@@ -917,7 +932,7 @@ input {
 .flags [data-kind='no-cover'],
 .flags [data-kind='empty'] {
   background: rgba(180, 140, 90, 0.16);
-  color: #e9d6bb;
+  color: var(--earth-text);
 }
 
 .flags [data-kind='no-cover'] .icon,
@@ -927,7 +942,7 @@ input {
 
 .flags [data-kind='contract-critical'] {
   background: rgba(214, 90, 69, 0.16);
-  color: #f2c3b9;
+  color: var(--red-text);
 }
 
 .flags [data-kind='contract-critical'] .icon {
@@ -937,7 +952,7 @@ input {
 .flags [data-kind='contract-warning'],
 .flags [data-kind='ageing'] {
   background: rgba(224, 163, 58, 0.13);
-  color: #f1dcb2;
+  color: var(--amber-text);
 }
 
 .flags [data-kind='contract-warning'] .icon,
@@ -1079,7 +1094,7 @@ input {
 
 .contract-line[data-state='critical'],
 .contract-line[data-state='left'] {
-  color: #f08a74;
+  color: var(--red-strong-text);
 }
 
 .detail h3 {
@@ -1277,7 +1292,7 @@ input {
     margin: 0 -6px;
     padding: 6px;
     border-radius: 10px;
-    background: radial-gradient(closest-side, #b48c5a 0 60%, rgba(160, 122, 76, 0.7) 85%, transparent) center / 120% 140% no-repeat;
+    background: radial-gradient(closest-side, var(--earth) 0 60%, rgba(160, 122, 76, 0.7) 85%, transparent) center / 120% 140% no-repeat;
   }
 
   .slot-head .twin {
