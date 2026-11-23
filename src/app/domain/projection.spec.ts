@@ -1,7 +1,15 @@
 import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { formationById } from './formations';
 import { Player } from './models';
-import { abilityAt, ageAt, autoAssign, contractState, isAgeing, seasonFlags } from './projection';
+import {
+  abilityAt,
+  ageAt,
+  autoAssign,
+  contractState,
+  isAgeing,
+  potentialAt,
+  seasonFlags,
+} from './projection';
 
 const player = (over: Partial<Player> = {}): Player => ({
   id: 'x',
@@ -51,6 +59,31 @@ describe('age', () => {
     const youth = player({ age: 18, ability: 2, potential: 3 });
     expect(abilityAt(youth, 2026, 2027)).toBe(2.5);
     expect(abilityAt(youth, 2026, 2030)).toBe(3);
+  });
+
+  it('holds players between 24 and 31 at their level', () => {
+    const prime = player({ age: 24, ability: 3.5, potential: 4 });
+    expect(abilityAt(prime, 2026, 2033)).toBe(3.5);
+  });
+
+  it('declines gently from 32 and steadily from 34', () => {
+    const veteran = player({ age: 30, ability: 4, potential: 4 });
+    expect(abilityAt(veteran, 2026, 2027)).toBe(4); // 31
+    expect(abilityAt(veteran, 2026, 2028)).toBe(3.5); // 32
+    expect(abilityAt(veteran, 2026, 2029)).toBe(3.5); // 33
+    expect(abilityAt(veteran, 2026, 2030)).toBe(3); // 34
+    expect(abilityAt(veteran, 2026, 2031)).toBe(2.5); // 35
+  });
+
+  it('never drops below half a star', () => {
+    const old = player({ age: 38, ability: 1, potential: 1 });
+    expect(abilityAt(old, 2026, 2030)).toBe(0.5);
+  });
+
+  it('caps potential at current level once a player declines', () => {
+    const veteran = player({ age: 31, ability: 3, potential: 3.5 });
+    expect(potentialAt(veteran, 2026, 2026)).toBe(3.5);
+    expect(potentialAt(veteran, 2026, 2027)).toBe(2.5);
   });
 });
 

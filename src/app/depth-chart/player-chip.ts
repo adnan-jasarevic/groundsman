@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { Player, PositionCode } from '../domain/models';
-import { abilityAt, contractState, familiarityFor, surname } from '../domain/projection';
+import { abilityAt, contractState, familiarityFor, potentialAt, surname } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { Icon } from '../ui/icon';
@@ -16,7 +16,7 @@ import { Stars } from '../ui/stars';
       [attr.aria-pressed]="store.selectedId() === player().id" [attr.aria-label]="aria()"
       (click)="store.selectedId.set(store.selectedId() === player().id ? null : player().id)">
       <span class="name" [attr.title]="player().name">{{ name() }}</span>
-      <app-stars [ability]="ability()" [potential]="player().potential" [size]="10" />
+      <app-stars [ability]="ability()" [potential]="potential()" [size]="10" />
       @if (player().target) {
         <span class="contract target-mark"><app-icon name="target" [size]="14" /></span>
       } @else {
@@ -37,6 +37,9 @@ export class PlayerChip {
   protected readonly state = computed(() => contractState(this.player(), this.store.season()));
   protected readonly ability = computed(() =>
     abilityAt(this.player(), this.store.baseSeason(), this.store.season()),
+  );
+  protected readonly potential = computed(() =>
+    potentialAt(this.player(), this.store.baseSeason(), this.store.season()),
   );
   protected readonly fam = computed(() => familiarityFor(this.player(), this.position()));
   protected readonly tierKind = computed(() =>

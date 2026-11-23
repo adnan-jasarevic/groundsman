@@ -32,17 +32,33 @@ export function isAgeing(age: number): boolean {
   return age >= AGEING_FROM;
 }
 
+export const GROWTH_UNTIL = 24;
+export const DECLINE_FROM = 32;
+export const STEADY_DECLINE_FROM = 34;
+const MIN_ABILITY = 0.5;
+
 /**
- * Projected ability: players under 24 grow half a star per season towards
- * their potential. Older players hold their level; this is a planning
- * estimate, not a simulation.
+ * Projected ability, a planning estimate rather than a simulation:
+ * - players under 24 grow half a star per season towards their potential
+ * - from 24 to 31 they hold their level
+ * - they lose half a star in the season they turn 32, hold at 33, and lose
+ *   half a star every season from 34 on, never dropping below half a star
  */
 export function abilityAt(player: Player, baseSeason: number, season: number): number {
   let ability = player.ability;
   for (let s = baseSeason; s < season; s++) {
-    if (ageAt(player, baseSeason, s) < 24) ability = Math.min(player.potential, ability + 0.5);
+    const age = ageAt(player, baseSeason, s);
+    const next = age + 1;
+    if (age < GROWTH_UNTIL) ability = Math.min(player.potential, ability + 0.5);
+    else if (next === DECLINE_FROM || next >= STEADY_DECLINE_FROM) ability = Math.max(MIN_ABILITY, ability - 0.5);
   }
   return ability;
+}
+
+/** Projected potential: once a player has declined, his ceiling is his current level. */
+export function potentialAt(player: Player, baseSeason: number, season: number): number {
+  const ability = abilityAt(player, baseSeason, season);
+  return ability < player.ability ? ability : player.potential;
 }
 
 export function familiarityFor(player: Player, position: PositionCode) {

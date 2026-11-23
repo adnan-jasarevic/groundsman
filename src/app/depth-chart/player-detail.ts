@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Familiarity, FAMILIARITY_LABEL, POSITION_LABEL, PositionCode, seasonLabel } from '../domain/models';
-import { abilityAt, ageAt, contractState, isAgeing, yearsLeft } from '../domain/projection';
+import { abilityAt, ageAt, contractState, isAgeing, potentialAt, yearsLeft } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { Icon } from '../ui/icon';
@@ -30,8 +30,8 @@ import { Stars } from '../ui/stars';
           </div>
           <div>
             <dt>Ability · potential</dt>
-            <dd><app-stars [ability]="ability()" [potential]="p.potential" [size]="13" />
-              <span class="num muted">{{ ability() }} · {{ p.potential }}</span></dd>
+            <dd><app-stars [ability]="ability()" [potential]="potential()" [size]="13" />
+              <span class="num muted">{{ ability() }} · {{ potential() }}</span></dd>
           </div>
           <div class="wide">
             <dt>Contract</dt>
@@ -126,6 +126,10 @@ export class PlayerDetail {
   protected readonly ability = computed(() => {
     const p = this.store.selected();
     return p ? abilityAt(p, this.store.baseSeason(), this.store.season()) : 0;
+  });
+  protected readonly potential = computed(() => {
+    const p = this.store.selected();
+    return p ? potentialAt(p, this.store.baseSeason(), this.store.season()) : 0;
   });
   protected readonly contract = computed(() => {
     const p = this.store.selected();
