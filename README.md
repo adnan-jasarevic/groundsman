@@ -19,3 +19,7 @@ npm run build           # production build to dist/
 npm test -- --watch=false  # unit tests (Vitest)
 npm run lint            # ESLint with Angular rules
 ```
+
+## Credits
+
+The app uses the [Barlow](https://github.com/jpt/barlow) and Barlow Condensed typefaces by Jeremy Tribby, self-hosted from `public/fonts` under the SIL Open Font License 1.1. The licence text is in `public/fonts/OFL.txt`.
