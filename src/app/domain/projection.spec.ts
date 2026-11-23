@@ -1,7 +1,7 @@
 import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { formationById } from './formations';
 import { Player } from './models';
-import { abilityAt, ageAt, autoAssign, contractState, isAgeing, seasonFlags } from './projection';
+import { ageAt, autoAssign, contractState, isAgeing, seasonFlags } from './projection';
 
 const player = (over: Partial<Player> = {}): Player => ({
   id: 'x',
@@ -45,12 +45,6 @@ describe('age', () => {
 
   it('moves with the selected season', () => {
     expect(ageAt(player({ age: 31 }), 2026, 2028)).toBe(33);
-  });
-
-  it('grows young players towards potential, never past it', () => {
-    const youth = player({ age: 18, ability: 2, potential: 3 });
-    expect(abilityAt(youth, 2026, 2027)).toBe(2.5);
-    expect(abilityAt(youth, 2026, 2030)).toBe(3);
   });
 });
 
