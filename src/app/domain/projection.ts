@@ -32,19 +32,6 @@ export function isAgeing(age: number): boolean {
   return age >= AGEING_FROM;
 }
 
-/**
- * Projected ability: players under 24 grow half a star per season towards
- * their potential. Older players hold their level; this is a planning
- * estimate, not a simulation.
- */
-export function abilityAt(player: Player, baseSeason: number, season: number): number {
-  let ability = player.ability;
-  for (let s = baseSeason; s < season; s++) {
-    if (ageAt(player, baseSeason, s) < 24) ability = Math.min(player.potential, ability + 0.5);
-  }
-  return ability;
-}
-
 export function familiarityFor(player: Player, position: PositionCode) {
   return player.positions[position] ?? 0;
 }
