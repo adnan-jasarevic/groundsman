@@ -1,6 +1,6 @@
 import { Player, SaveFile } from '../domain/models';
 
-// Development squad: Manchester United first team, 2026/27.
+// Illustrative development squad: Manchester United first team, 2026/27.
 // Names, squad, ages, nationalities and main positions follow ESPN's 2026/27
 // squad page as of 22 Nov 2026. Contract end years, secondary positions,
 // familiarity and star ratings are estimates for development only and are not
