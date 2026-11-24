@@ -1,23 +1,41 @@
-import { DepthPlan, Formation, Player, PositionCode, POSITION_LABEL } from './models';
+import {
+  DepthPlan,
+  Formation,
+  formatDate,
+  Player,
+  PositionCode,
+  POSITION_LABEL,
+  SeasonStyle,
+} from './models';
 
 export const AGEING_FROM = 33;
 
 /**
- * Contract state at the start of a season (start year).
- * A contract ending 30 June of year Y runs out at the end of season (Y-1)/Y.
- * - left: the contract has already run out before this season starts
- * - critical: 1 year or less left (it ends at the end of this season)
+ * Contract state in a season (its start year).
+ * - left: the contract ran out in an earlier season
+ * - critical: 1 year or less left (it runs out this season)
  * - warning: 2 years left
  */
 export type ContractState = 'ok' | 'warning' | 'critical' | 'left';
 
-export function yearsLeft(contractEnd: number, season: number): number {
-  return contractEnd - season;
+/**
+ * The last season a contract covers: the season its expiry date falls in.
+ * Split seasons turn over at the end of July, so 30 June 2027 is the last day of 2026/27.
+ */
+export function lastSeason(expires: string, style: SeasonStyle): number {
+  const [year, month] = expires.split('-').map(Number);
+  return style === 'split' && month <= 7 ? year - 1 : year;
 }
 
-export function contractState(player: Player, season: number): ContractState {
-  if (player.contractEnd === undefined) return 'ok';
-  const left = yearsLeft(player.contractEnd, season);
+/** Seasons left on the contract, counting this one. Undefined without a contract. */
+export function seasonsLeft(player: Player, season: number, style: SeasonStyle): number | undefined {
+  if (player.contractExpires === undefined) return undefined;
+  return lastSeason(player.contractExpires, style) - season + 1;
+}
+
+export function contractState(player: Player, season: number, style: SeasonStyle): ContractState {
+  const left = seasonsLeft(player, season, style);
+  if (left === undefined) return 'ok';
   if (left <= 0) return 'left';
   if (left <= 1) return 'critical';
   if (left === 2) return 'warning';
@@ -85,10 +103,15 @@ export interface Flag {
 }
 
 /** Players who are still at the club in this season (left contracts and targets excluded). */
-export function activeIds(ids: string[], byId: Map<string, Player>, season: number): string[] {
+export function activeIds(
+  ids: string[],
+  byId: Map<string, Player>,
+  season: number,
+  style: SeasonStyle,
+): string[] {
   return ids.filter((id) => {
     const p = byId.get(id);
-    return p && contractState(p, season) !== 'left';
+    return p && contractState(p, season, style) !== 'left';
   });
 }
 
@@ -98,20 +121,22 @@ export function seasonFlags(
   byId: Map<string, Player>,
   baseSeason: number,
   season: number,
+  style: SeasonStyle,
 ): Flag[] {
   const flags: Flag[] = [];
   const counted = new Set<string>();
+  const endingDates = new Set<string>();
   let critical = 0;
   let warning = 0;
 
   for (const slot of formation.slots) {
     const ids = plan.slots[slot.id] ?? [];
-    const active = activeIds(ids, byId, season);
+    const active = activeIds(ids, byId, season, style);
     const label = POSITION_LABEL[slot.position];
     if (active.length === 0) {
       flags.push({ kind: 'empty', severity: 'critical', text: `${label} has nobody left to play there`, slotId: slot.id });
     } else if (active.length === 1) {
-      const leaver = ids.map((id) => byId.get(id)).find((p) => p && contractState(p, season) === 'left');
+      const leaver = ids.map((id) => byId.get(id)).find((p) => p && contractState(p, season, style) === 'left');
       flags.push({
         kind: 'no-cover',
         severity: 'critical',
@@ -131,19 +156,24 @@ export function seasonFlags(
     for (const id of active) {
       if (counted.has(id)) continue;
       counted.add(id);
-      const state = contractState(byId.get(id)!, season);
-      if (state === 'critical') critical++;
+      const player = byId.get(id)!;
+      const state = contractState(player, season, style);
+      if (state === 'critical') {
+        critical++;
+        endingDates.add(player.contractExpires!);
+      }
       if (state === 'warning') warning++;
     }
   }
 
-  const end = season + 1;
-  if (critical)
+  if (critical) {
+    const when = endingDates.size === 1 ? formatDate([...endingDates][0]) : 'this season';
     flags.push({
       kind: 'contract-critical',
       severity: 'critical',
-      text: `${critical} ${critical === 1 ? 'contract ends' : 'contracts end'} June ${end}`,
+      text: `${critical} ${critical === 1 ? 'contract ends' : 'contracts end'} ${when}`,
     });
+  }
   if (warning)
     flags.push({
       kind: 'contract-warning',

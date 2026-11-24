@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { Player, PositionCode } from '../domain/models';
-import { contractState, familiarityFor, surname } from '../domain/projection';
+import { formatDate, formatMonthYear, Player, PositionCode } from '../domain/models';
+import { familiarityFor, surname } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { Icon } from '../ui/icon';
@@ -16,7 +16,8 @@ import { Stars } from '../ui/stars';
       [attr.aria-pressed]="store.selectedId() === player().id" [attr.aria-label]="aria()"
       (click)="store.selectedId.set(store.selectedId() === player().id ? null : player().id)">
       <span class="name" [attr.title]="player().name">{{ name() }}</span>
-      <app-stars [ability]="player().ability" [potential]="player().potential" [size]="10" />
+      <app-stars [ability]="player().ability" [potential]="player().potential"
+        [potentialMax]="player().potentialMax" [size]="10" />
       @if (player().target) {
         <span class="contract target-mark"><app-icon name="target" [size]="14" /></span>
       } @else {
@@ -34,25 +35,29 @@ export class PlayerChip {
   readonly slotLabel = input('');
 
   protected readonly name = computed(() => surname(this.player()));
-  protected readonly state = computed(() => contractState(this.player(), this.store.season()));
+  protected readonly state = computed(() => this.store.contractOf(this.player()));
   protected readonly fam = computed(() => familiarityFor(this.player(), this.position()));
   protected readonly tierKind = computed(() =>
     this.tier() === 0 ? 'starter' : this.tier() === 1 ? 'backup' : 'depth',
   );
 
   protected readonly contractText = computed(() => {
-    const p = this.player();
-    if (this.state() === 'left') return `Left Jun ${String(p.contractEnd! % 100).padStart(2, '0')}`;
-    return `'${String(p.contractEnd! % 100).padStart(2, '0')}`;
+    const expires = this.player().contractExpires;
+    if (!expires) return '';
+    if (this.state() === 'left') return `Left ${formatMonthYear(expires)}`;
+    return `'${expires.slice(2, 4)}`;
   });
 
   protected readonly aria = computed(() => {
     const p = this.player();
+    const until = p.contractExpires ? formatDate(p.contractExpires, 'long') : '';
     const contract = p.target
       ? 'shortlist target'
-      : this.state() === 'left'
-        ? `contract ended June ${p.contractEnd}, no longer at the club`
-        : `contract until June ${p.contractEnd}${this.state() === 'critical' ? ', ends this season' : this.state() === 'warning' ? ', 2 years left' : ''}`;
+      : !until
+        ? 'no contract date'
+        : this.state() === 'left'
+          ? `contract ended ${until}, no longer at the club`
+          : `contract until ${until}${this.state() === 'critical' ? ', ends this season' : this.state() === 'warning' ? ', 2 years left' : ''}`;
     return `${p.name}, ${this.slotLabel()} ${tierName(this.tier())}, ${contract}. Show details`;
   });
 }

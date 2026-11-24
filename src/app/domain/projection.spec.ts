@@ -1,7 +1,15 @@
 import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { formationById } from './formations';
-import { Player } from './models';
-import { ageAt, autoAssign, contractState, isAgeing, seasonFlags } from './projection';
+import { formatDate, formatStars, Player, seasonLabel } from './models';
+import {
+  ageAt,
+  autoAssign,
+  contractState,
+  isAgeing,
+  lastSeason,
+  seasonFlags,
+  seasonsLeft,
+} from './projection';
 
 const player = (over: Partial<Player> = {}): Player => ({
   id: 'x',
@@ -11,29 +19,67 @@ const player = (over: Partial<Player> = {}): Player => ({
   positions: { DC: 4 },
   ability: 3,
   potential: 3,
-  contractEnd: 2030,
+  contractExpires: '2030-06-30',
   ...over,
 });
 
-describe('contract state', () => {
+describe('contract state, split seasons (2026/27)', () => {
+  const until = (contractExpires: string) => player({ contractExpires });
+
   it('is yellow (warning) with 2 years left', () => {
-    expect(contractState(player({ contractEnd: 2028 }), 2026)).toBe('warning');
+    expect(contractState(until('2028-06-30'), 2026, 'split')).toBe('warning');
   });
 
   it('is red (critical) with 1 year or less left', () => {
-    expect(contractState(player({ contractEnd: 2027 }), 2026)).toBe('critical');
+    expect(contractState(until('2027-06-30'), 2026, 'split')).toBe('critical');
   });
 
   it('is fine with 3 or more years left', () => {
-    expect(contractState(player({ contractEnd: 2029 }), 2026)).toBe('ok');
+    expect(contractState(until('2029-06-30'), 2026, 'split')).toBe('ok');
+  });
+
+  it('counts a contract ending mid-season as ending in that season', () => {
+    expect(lastSeason('2027-01-31', 'split')).toBe(2026);
+    expect(lastSeason('2027-12-31', 'split')).toBe(2027);
+    expect(seasonsLeft(until('2027-12-31'), 2026, 'split')).toBe(2);
   });
 
   it('marks the player as gone once the contract has run out', () => {
-    expect(contractState(player({ contractEnd: 2027 }), 2027)).toBe('left');
+    expect(contractState(until('2027-06-30'), 2027, 'split')).toBe('left');
   });
 
   it('ignores shortlist targets', () => {
-    expect(contractState(player({ contractEnd: undefined, target: true }), 2026)).toBe('ok');
+    expect(contractState(player({ contractExpires: undefined, target: true }), 2026, 'split')).toBe(
+      'ok',
+    );
+  });
+});
+
+describe('contract state, calendar seasons (2048)', () => {
+  const until = (contractExpires: string) => player({ contractExpires });
+
+  it('ends a contract in the season of its expiry year', () => {
+    expect(lastSeason('2048-11-30', 'calendar')).toBe(2048);
+    expect(contractState(until('2048-11-30'), 2048, 'calendar')).toBe('critical');
+    expect(contractState(until('2049-11-30'), 2048, 'calendar')).toBe('warning');
+    expect(contractState(until('2050-11-30'), 2048, 'calendar')).toBe('ok');
+    expect(contractState(until('2048-11-30'), 2049, 'calendar')).toBe('left');
+  });
+});
+
+describe('labels', () => {
+  it('names seasons by the league style', () => {
+    expect(seasonLabel(2026, 'split')).toBe('2026/27');
+    expect(seasonLabel(2099, 'split')).toBe('2099/00');
+    expect(seasonLabel(2048, 'calendar')).toBe('2048');
+  });
+
+  it('writes dates and stars as FM shows them', () => {
+    expect(formatDate('2048-11-30')).toBe('30 Nov 2048');
+    expect(formatDate('2027-06-30', 'long')).toBe('30 June 2027');
+    expect(formatStars(4)).toBe('4.0');
+    expect(formatStars(2, 3)).toBe('2.0–3.0');
+    expect(formatStars(3, 3)).toBe('3.0');
   });
 });
 
@@ -60,13 +106,20 @@ describe('auto plan and flags', () => {
   });
 
   it('flags the ageing starter and expiring contracts in the current season', () => {
-    const kinds = seasonFlags(formation, plan, byId, 2026, 2026).map((f) => f.kind);
+    const kinds = seasonFlags(formation, plan, byId, 2026, 2026, 'split').map((f) => f.kind);
     expect(kinds).toContain('ageing');
     expect(kinds).toContain('contract-critical');
   });
 
+  it('names the date when the expiring contracts share one', () => {
+    const flags = seasonFlags(formation, plan, byId, 2026, 2026, 'split');
+    expect(flags.find((f) => f.kind === 'contract-critical')!.text).toMatch(
+      /^\d+ contracts? ends? 30 Jun 2027$/,
+    );
+  });
+
   it('flags missing cover once leavers are gone', () => {
-    const flags = seasonFlags(formation, plan, byId, 2026, 2027);
+    const flags = seasonFlags(formation, plan, byId, 2026, 2027, 'split');
     expect(flags.some((f) => f.kind === 'no-cover' || f.kind === 'empty')).toBe(true);
   });
 });

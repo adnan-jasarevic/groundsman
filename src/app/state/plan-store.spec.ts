@@ -20,8 +20,12 @@ describe('PlanStore', () => {
     store.move('t01', null, slot, 0);
     const after = store.plan().slots[slot];
     expect(after[0]).toBe('t01');
-    const stillHere = after.filter((id) => contractState(store.byId().get(id)!, 2027) !== 'left');
-    const activeBefore = before.filter((id) => contractState(store.byId().get(id)!, 2027) !== 'left');
+    const stillHere = after.filter(
+      (id) => contractState(store.byId().get(id)!, 2027, 'split') !== 'left',
+    );
+    const activeBefore = before.filter(
+      (id) => contractState(store.byId().get(id)!, 2027, 'split') !== 'left',
+    );
     for (const id of activeBefore) expect(stillHere).toContain(id);
   });
 

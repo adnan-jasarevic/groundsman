@@ -1,8 +1,8 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FORMATIONS } from '../domain/formations';
-import { FormationSlot, Player, POSITION_LABEL, PositionCode, seasonLabel } from '../domain/models';
-import { contractState, shortName } from '../domain/projection';
+import { FormationSlot, Player, POSITION_LABEL, PositionCode } from '../domain/models';
+import { shortName } from '../domain/projection';
 import { MAX_TIERS, MIN_TIERS, PlanStore, tierName } from '../state/plan-store';
 import { Icon } from '../ui/icon';
 import { Stars } from '../ui/stars';
@@ -26,7 +26,6 @@ export class DepthChart {
   protected readonly BENCH = BENCH;
   protected readonly SHORTLIST = SHORTLIST;
   protected readonly label = POSITION_LABEL;
-  protected readonly seasonLabel = seasonLabel;
   protected readonly short = shortName;
 
   /** Bumped on every season change so the mow sweep replays; 0 means never run. */
@@ -71,11 +70,11 @@ export class DepthChart {
   }
 
   protected contractYear(p: Player): string {
-    return p.contractEnd ? `'${String(p.contractEnd % 100).padStart(2, '0')}` : '';
+    return p.contractExpires ? `'${p.contractExpires.slice(2, 4)}` : '';
   }
 
   protected contractStateOf(p: Player): string {
-    return contractState(p, this.store.season());
+    return this.store.contractOf(p);
   }
 
   protected setSeason(season: number): void {

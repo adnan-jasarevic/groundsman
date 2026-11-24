@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Familiarity, FAMILIARITY_LABEL, POSITION_LABEL, PositionCode, seasonLabel } from '../domain/models';
-import { ageAt, contractState, isAgeing, yearsLeft } from '../domain/projection';
+import {
+  Familiarity,
+  FAMILIARITY_LABEL,
+  formatDate,
+  formatStars,
+  POSITION_LABEL,
+  PositionCode,
+} from '../domain/models';
+import { ageAt, isAgeing, seasonsLeft } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { Icon } from '../ui/icon';
@@ -30,8 +37,8 @@ import { Stars } from '../ui/stars';
           </div>
           <div>
             <dt>Ability · potential</dt>
-            <dd><app-stars [ability]="p.ability" [potential]="p.potential" [size]="13" />
-              <span class="num muted">{{ p.ability }} · {{ p.potential }}</span></dd>
+            <dd><app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" [size]="13" />
+              <span class="num muted">{{ stars(p.ability) }} · {{ stars(p.potential, p.potentialMax) }}</span></dd>
           </div>
           <div class="wide">
             <dt>Contract</dt>
@@ -117,7 +124,8 @@ export class PlayerDetail {
     });
   }
 
-  protected readonly seasonText = computed(() => seasonLabel(this.store.season()));
+  protected readonly seasonText = computed(() => this.store.seasonText(this.store.season()));
+  protected readonly stars = formatStars;
   protected readonly age = computed(() => {
     const p = this.store.selected();
     return p ? ageAt(p, this.store.baseSeason(), this.store.season()) : 0;
@@ -125,14 +133,15 @@ export class PlayerDetail {
   protected readonly ageing = computed(() => isAgeing(this.age()));
   protected readonly contract = computed(() => {
     const p = this.store.selected();
-    return p ? contractState(p, this.store.season()) : 'ok';
+    return p ? this.store.contractOf(p) : 'ok';
   });
   protected readonly contractText = computed(() => {
     const p = this.store.selected();
-    if (!p || p.contractEnd === undefined) return '';
-    const left = yearsLeft(p.contractEnd, this.store.season());
-    if (left <= 0) return `Ended 30 June ${p.contractEnd}. No longer at the club.`;
-    return `Until 30 June ${p.contractEnd} · ${left === 1 ? 'ends this season' : `${left} years left`}`;
+    if (!p?.contractExpires) return 'No contract date recorded.';
+    const left = seasonsLeft(p, this.store.season(), this.store.seasonStyle())!;
+    const date = formatDate(p.contractExpires);
+    if (left <= 0) return `Ended ${date}. No longer at the club.`;
+    return `Until ${date} · ${left === 1 ? 'ends this season' : `${left} years left`}`;
   });
 
   protected readonly positions = computed(() => {
