@@ -145,17 +145,23 @@ export function parseSquad(input: string): SquadImport {
       continue;
     }
     const listed = parsePositions(cell(row, 'position') ?? '');
-    if (!listed) {
+    if (!listed.codes.length) {
       skip('position', 'Position could not be read.');
       continue;
     }
+    if (listed.unread.length) {
+      blankField(
+        'position',
+        `Could not read ${listed.unread.join(', ')}. The other positions were kept.`,
+      );
+    }
 
     const positions: Partial<Record<PositionCode, Familiarity>> = {};
-    for (const code of listed) positions[code] = 3;
+    for (const code of listed.codes) positions[code] = 3;
     const bestRaw = cell(row, 'bestPosition');
     if (!isBlank(bestRaw)) {
       const best = parsePositions(bestRaw!);
-      if (best?.length === 1) positions[best[0]] = 4;
+      if (best.codes.length === 1 && !best.unread.length) positions[best.codes[0]] = 4;
       else
         blankField(
           'bestPosition',

@@ -135,6 +135,20 @@ describe('parseSquad', () => {
     ]);
   });
 
+  it('keeps the readable positions when part of the position is unknown', () => {
+    const rows = [[...FICTIONAL_ROWS[3]], [...FICTIONAL_ROWS[0]]];
+    rows[0][3] = 'SW, D (C), DM';
+    rows[1][3] = 'SW';
+    const result = parseSquad(toFmCsv(FICTIONAL_HEADERS, rows));
+
+    expect(result.players.map((p) => p.name)).toEqual(['Moussa Kanté-Rey']);
+    expect(result.players[0].positions).toEqual({ DC: 4, DM: 3 });
+    expect(result.issues.map((i) => [i.row, i.column, i.skipped, i.message])).toEqual([
+      [1, 'position', false, 'Could not read SW. The other positions were kept.'],
+      [2, 'position', true, 'Position could not be read.'],
+    ]);
+  });
+
   it('treats "-" as no value', () => {
     const rows = [[...FICTIONAL_ROWS[0]]];
     rows[0][9] = '-';

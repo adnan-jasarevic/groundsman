@@ -1,23 +1,42 @@
+import { POSITION_LABEL, PositionCode } from '../domain/models';
 import { guessDateOrder, parseDate, parsePositions, parseStars } from './fm-values';
 
 describe('parsePositions', () => {
-  it.each([
-    ['GK', ['GK']],
-    ['D (C)', ['DC']],
-    ['D (RLC)', ['DR', 'DL', 'DC']],
-    ['D/WB/AM (R)', ['DR', 'WBR', 'AMR']],
-    ['D (RC), WB (R)', ['DR', 'DC', 'WBR']],
-    ['D (R), DM, M (C)', ['DR', 'DM', 'MC']],
-    ['DM, M/AM (C)', ['DM', 'MC', 'AMC']],
-    ['M (C), AM (LC)', ['MC', 'AML', 'AMC']],
-    ['AM (R), ST (C)', ['AMR', 'ST']],
-    ['ST', ['ST']],
-  ])('reads %s', (value, expected) => {
-    expect(parsePositions(value)).toEqual(expected);
+  const ALL = Object.keys(POSITION_LABEL) as PositionCode[];
+
+  it.each(ALL)('reads %s on its own', (code) => {
+    expect(parsePositions(POSITION_LABEL[code])).toEqual({ codes: [code], unread: [] });
   });
 
-  it.each(['', 'Striker', 'D', 'XX (C)', 'WB (C)'])('rejects %j', (value) => {
-    expect(parsePositions(value)).toBeNull();
+  it('reads every position in one string', () => {
+    const { codes, unread } = parsePositions('GK, D/WB (RL), D (C), DM, M/AM (RLC), ST (C)');
+    expect([...codes].sort()).toEqual([...ALL].sort());
+    expect(unread).toEqual([]);
+  });
+
+  it.each([
+    ['D (RLC)', ['DR', 'DL', 'DC']],
+    ['D/WB/AM (R)', ['DR', 'WBR', 'AMR']],
+    ['WB/M (L)', ['WBL', 'ML']],
+    ['D (RL), WB (RL), DM', ['DR', 'DL', 'WBR', 'WBL', 'DM']],
+    ['M/AM (RLC)', ['MR', 'ML', 'MC', 'AMR', 'AML', 'AMC']],
+    ['AM (RLC), ST (C)', ['AMR', 'AML', 'AMC', 'ST']],
+    ['DM, M (C)', ['DM', 'MC']],
+    ['ST', ['ST']],
+    ['d (c)', ['DC']],
+  ])('reads %s', (value, expected) => {
+    expect(parsePositions(value)).toEqual({ codes: expected, unread: [] });
+  });
+
+  it.each([
+    ['SW, D (C)', ['DC'], ['SW']],
+    ['WB (RC)', ['WBR'], ['WB (C)']],
+    ['D/WB/XX (L)', ['DL', 'WBL'], ['XX (L)']],
+    ['D, DM', ['DM'], ['D']],
+    ['Striker', [], ['Striker']],
+    ['', [], []],
+  ])('keeps what it can read from %j', (value, codes, unread) => {
+    expect(parsePositions(value)).toEqual({ codes, unread });
   });
 });
 

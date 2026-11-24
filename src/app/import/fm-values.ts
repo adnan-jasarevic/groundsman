@@ -16,35 +16,48 @@ const SIDED: Record<string, Partial<Record<string, PositionCode>>> = {
 
 const UNSIDED: Record<string, PositionCode> = { GK: 'GK', DM: 'DM' };
 
+export interface ParsedPositions {
+  codes: PositionCode[];
+  /** Pieces that aren't a known position, e.g. "SW" or "WB (C)". */
+  unread: string[];
+}
+
 /**
- * Reads FM position notation, e.g. "D/WB/AM (R)", "D (RLC)", "D (C), DM", "AM (R), ST (C)".
- * Returns null if any part can't be read.
+ * Reads FM position notation: roles joined by "/", then the sides in brackets,
+ * with groups separated by commas, e.g. "D/WB/AM (R)", "D (RLC)", "D (C), DM".
+ * Covers every position on FM's grid. Unknown pieces are returned in `unread`
+ * so the rest of the string still counts.
  */
-export function parsePositions(value: string): PositionCode[] | null {
+export function parsePositions(value: string): ParsedPositions {
   const codes: PositionCode[] = [];
+  const unread: string[] = [];
   for (const part of value.split(',').map((p) => p.trim())) {
     if (!part) continue;
-    const match = /^([A-Z/]+)\s*(?:\(([RLC]+)\))?$/i.exec(part);
-    if (!match) return null;
+    const match = /^([A-Z/]+)\s*(?:\(([A-Z]+)\))?$/i.exec(part);
+    if (!match) {
+      unread.push(part);
+      continue;
+    }
     const sides = (match[2] ?? '').toUpperCase().split('').filter(Boolean);
-    for (const role of match[1].toUpperCase().split('/')) {
+    for (const written of match[1].split('/').filter(Boolean)) {
+      const role = written.toUpperCase();
       if (UNSIDED[role]) {
         codes.push(UNSIDED[role]);
         continue;
       }
       const bySide = SIDED[role];
-      if (!bySide) return null;
       // ST is always central, so FM sometimes leaves the side off.
       const roleSides = sides.length ? sides : role === 'ST' ? ['C'] : [];
-      if (!roleSides.length) return null;
-      for (const side of roleSides) {
-        const code = bySide[side];
-        if (code) codes.push(code);
+      if (!bySide || !roleSides.length) {
+        unread.push(sides.length ? `${written} (${sides.join('')})` : written);
+        continue;
       }
+      const badSides = roleSides.filter((side) => !bySide[side]);
+      for (const side of roleSides) if (bySide[side]) codes.push(bySide[side]);
+      if (badSides.length) unread.push(`${role} (${badSides.join('')})`);
     }
   }
-  const unique = [...new Set(codes)];
-  return unique.length ? unique : null;
+  return { codes: [...new Set(codes)], unread };
 }
 
 /** "3.5" or "2.0-3.0", half stars from 0.5 to 5. */
