@@ -92,7 +92,7 @@ describe('parseSquad', () => {
     const { headers, rows } = pick(['Player', 'Nation', 'Expires']);
     expect(() => parseSquad(toFmCsv(headers, rows))).toThrow(
       new ImportError(
-        'The export has no Position, Age column. Add it to the view in FM and export again.',
+        'The export has no Position or Age columns. Add them to the view in FM and export again.',
       ),
     );
   });

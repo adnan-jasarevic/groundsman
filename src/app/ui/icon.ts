@@ -11,6 +11,8 @@ const PATHS = {
   target: 'M12 20a8 8 0 100-16 8 8 0 000 16zM12 15a3 3 0 100-6 3 3 0 000 6zM12 2v3M12 19v3M2 12h3M19 12h3',
   bench: 'M4 12h16M6 12v6M18 12v6M5 8h14',
   arrow: 'M5 12h14M13 6l6 6-6 6',
+  upload: 'M12 15V4M7 9l5-5 5 5M4 15v5h16v-5',
+  file: 'M14 3H6v18h12V7l-4-4zM14 3v4h4',
 } as const;
 
 export type IconName = keyof typeof PATHS;

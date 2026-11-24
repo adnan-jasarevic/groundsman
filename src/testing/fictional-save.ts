@@ -50,4 +50,5 @@ export const FICTIONAL_SAVE: SaveFile = {
   dataNote: 'Fictional test squad',
   players,
   shortlist,
+  sample: true,
 };

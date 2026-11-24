@@ -1,0 +1,176 @@
+<div class="import" [class.reviewing]="preview()">
+  <header class="topbar">
+    <h1>Import from FM</h1>
+  </header>
+
+  @if (preview(); as pv) {
+    <section class="import-band" aria-label="Save details">
+      <div class="file-chip">
+        <app-icon name="file" [size]="20" />
+        <span class="file-text">
+          <strong>{{ loaded()!.fileName }}</strong>
+          <small>{{ fileLine() }}</small>
+        </span>
+        <button type="button" class="text-btn" (click)="chooseAnother()">Choose another</button>
+      </div>
+
+      <label class="import-field">
+        <span>Club</span>
+        <input type="text" [value]="club()" (input)="club.set($any($event.target).value)" placeholder="Your club's name"
+          autocomplete="off" [attr.aria-invalid]="club().trim() === ''" />
+      </label>
+
+      <fieldset class="import-field">
+        <legend>Seasons run</legend>
+        <div class="segmented">
+          <label [class.on]="style() === 'split'">
+            <input type="radio" name="season-style" [checked]="style() === 'split'" (change)="setStyle('split')" />
+            <span>{{ splitLabel() }}<span class="sr-only"> (season over two years)</span></span>
+          </label>
+          <label [class.on]="style() === 'calendar'">
+            <input type="radio" name="season-style" [checked]="style() === 'calendar'" (change)="setStyle('calendar')" />
+            <span>{{ calendarLabel() }}<span class="sr-only"> (season in one year)</span></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="import-field">
+        <span>Current season</span>
+        <input type="number" inputmode="numeric" min="1900" max="2300" [value]="season()" (input)="setSeason($event)"
+          aria-describedby="season-hint" />
+        <small id="season-hint">Taken from the earliest contract end. Check it matches your save.</small>
+      </label>
+    </section>
+
+    <section class="import-board" [class.first]="pv.firstImport" aria-label="What this import changes">
+      <div class="board-col arriving">
+        <h2><span class="count">{{ pv.arriving.length }}</span>{{ pv.firstImport ? 'Players' : 'Arriving' }}</h2>
+        <ul class="board-rows">
+          @for (p of pv.arriving; track p.id) {
+            <li class="board-row">
+              <span class="who"><strong>{{ p.name }}</strong><small>{{ positions(p) }} · {{ p.age }}</small></span>
+              <app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" />
+              <span class="yr">{{ year(p) }}</span>
+            </li>
+          } @empty {
+            <li class="board-empty">Nobody new in this export.</li>
+          }
+        </ul>
+      </div>
+
+      @if (!pv.firstImport) {
+        <div class="board-col staying" [class.show-unchanged]="showUnchanged()">
+          <h2><span class="count">{{ pv.staying.length }}</span>Staying</h2>
+          <ul class="board-rows">
+            @for (s of stayingOrdered(); track s.player.id) {
+              <li class="board-row" [class.unchanged]="!s.unread && !s.changes.length">
+                <span class="who">
+                  <strong>{{ s.player.name }}</strong>
+                  @if (s.unread) {
+                    <small class="changes"><span class="change warn">Row couldn't be read. Kept as it was.</span></small>
+                  } @else if (s.changes.length) {
+                    <small class="changes">
+                      @for (c of s.changes.slice(0, 2); track c.label) {
+                        <span class="change" [class.warn]="c.label === 'Contract'">{{ c.label }} <s>{{ c.from }}</s> → {{ c.to }}</span>
+                      }
+                      @if (s.changes.length > 2) { <span class="change more">+{{ s.changes.length - 2 }} more</span> }
+                    </small>
+                  } @else {
+                    <small>No changes</small>
+                  }
+                </span>
+                <app-stars [ability]="s.player.ability" [potential]="s.player.potential"
+                  [potentialMax]="s.player.potentialMax" />
+                <span class="yr">{{ year(s.player) }}</span>
+              </li>
+            } @empty {
+              <li class="board-empty">Nobody from your squad is in this export.</li>
+            }
+            @if (unchangedCount() && !showUnchanged()) {
+              <li class="board-more">
+                <button type="button" class="text-btn" (click)="showUnchanged.set(true)">
+                  Show {{ unchangedCount() }} unchanged
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="board-col leaving">
+          <h2><span class="count">{{ pv.leaving.length }}</span>Leaving</h2>
+          <ul class="board-rows">
+            @for (p of pv.leaving; track p.id) {
+              <li class="board-row">
+                <span class="who">
+                  <strong>{{ p.name }}</strong><small>{{ positions(p) }} · {{ p.age }}</small>
+                  @if (placesOf(p); as places) { <small class="places">Leaves {{ places }}</small> }
+                </span>
+                <span class="yr">{{ year(p) }}</span>
+              </li>
+            } @empty {
+              <li class="board-empty">Everyone in your squad is still here.</li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+
+    @if (problems().length) {
+      <section class="import-problems" aria-label="Problems">
+        <app-icon name="alert" />
+        <ul>
+          @for (line of showAllProblems() ? problems() : problems().slice(0, 2); track $index) {
+            <li>{{ line }}</li>
+          }
+        </ul>
+        @if (problems().length > 2) {
+          <button type="button" class="text-btn" (click)="showAllProblems.set(!showAllProblems())">
+            {{ showAllProblems() ? 'Show fewer' : 'Show all ' + problems().length }}
+          </button>
+        }
+      </section>
+    }
+
+    <footer class="import-foot">
+      <p>{{ club().trim() ? footNote() : "Add your club's name to import." }}</p>
+      @if (store.hasSave()) {
+        <button type="button" class="btn" (click)="cancel()">Cancel</button>
+      }
+      <button type="button" class="btn primary" [disabled]="!canImport()" (click)="confirm()">
+        Import {{ pv.players.length }} {{ pv.players.length === 1 ? 'player' : 'players' }}
+      </button>
+    </footer>
+  } @else {
+    <section class="import-start">
+      <div class="drop" [class.over]="dragOver()" (dragover)="onDragOver($event)" (dragleave)="dragOver.set(false)"
+        (drop)="onDrop($event)">
+        <app-icon name="upload" [size]="32" />
+        <h2>Drop your FM export here</h2>
+        <p>A squad view saved from FM27 as a web page, text file or CSV. Any columns work, as long as it has Player,
+          Position and Age.</p>
+        <label class="btn primary file-pick">
+          <input type="file" accept=".html,.htm,.rtf,.txt,.csv,text/html,text/plain,text/csv" (change)="onFile($event)" />
+          Choose file
+        </label>
+      </div>
+
+      @if (error()) {
+        <p class="import-error" role="alert"><app-icon name="alert" /><span>{{ error() }}</span></p>
+      }
+
+      <p class="how">In FM, open the squad view you want and press Ctrl+P to save it as a file.</p>
+
+      <div class="paste">
+        <button type="button" class="text-btn" [attr.aria-expanded]="pasteOpen()" (click)="pasteOpen.set(!pasteOpen())">
+          {{ pasteOpen() ? 'Hide paste box' : 'Paste instead' }}
+        </button>
+        @if (pasteOpen()) {
+          <label class="sr-only" for="paste-box">Pasted FM export</label>
+          <textarea id="paste-box" rows="8" [value]="pasteText()" (input)="pasteText.set($any($event.target).value)"
+            placeholder="Paste the contents of the exported file here"></textarea>
+          <button type="button" class="btn" [disabled]="!pasteText().trim()" (click)="readPaste()">Read pasted text</button>
+        }
+      </div>
+    </section>
+  }
+</div>
