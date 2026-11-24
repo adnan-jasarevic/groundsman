@@ -1,4 +1,12 @@
-import { computed, effect, inject, Injectable, InjectionToken, signal } from '@angular/core';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  InjectionToken,
+  isDevMode,
+  signal,
+} from '@angular/core';
 import { DEV_SAVE } from '../data/dev-save';
 import { formationById, FORMATIONS } from '../domain/formations';
 import { DepthPlan, Player, POSITION_LABEL, SaveFile, seasonLabel } from '../domain/models';
@@ -39,21 +47,64 @@ function persist(saveId: string, value: StoredPlans): void {
   }
 }
 
-/** The save the planner opens. Defaults to the development squad; specs provide their own. */
-export const SAVE = new InjectionToken<SaveFile>('SAVE', { providedIn: 'root', factory: () => DEV_SAVE });
+const SAVE_KEY = 'groundsman.save';
+
+/** The imported squad, kept in this browser. */
+export function loadSave(): SaveFile | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? (JSON.parse(raw) as SaveFile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistSave(save: SaveFile): boolean {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The save the planner opens: the one saved in this browser, else the
+ * development squad in development builds, else none. Specs provide their own.
+ */
+export const SAVE = new InjectionToken<SaveFile | null>('SAVE', {
+  providedIn: 'root',
+  factory: () => loadSave() ?? (isDevMode() ? DEV_SAVE : null),
+});
+
+/** Stand-in while there's no squad, so the planner's views stay empty rather than missing. */
+const NO_SAVE: SaveFile = {
+  id: 'none',
+  club: '',
+  shortCode: '',
+  game: 'FM27',
+  seasonStyle: 'split',
+  currentSeason: new Date().getFullYear(),
+  dataAsOf: '',
+  dataNote: '',
+  players: [],
+  shortlist: [],
+};
 
 @Injectable({ providedIn: 'root' })
 export class PlanStore {
   private readonly initial = inject(SAVE);
-  readonly save = signal<SaveFile>(this.initial);
+  readonly save = signal<SaveFile>(this.initial ?? NO_SAVE);
+  /** False until a squad is imported (or a sample squad is loaded). */
+  readonly hasSave = signal(this.initial !== null);
   readonly baseSeason = computed(() => this.save().currentSeason);
   readonly seasonStyle = computed(() => this.save().seasonStyle);
   readonly seasons = computed(() =>
     Array.from({ length: SEASONS_AHEAD + 1 }, (_, i) => this.baseSeason() + i),
   );
-  readonly season = signal(this.initial.currentSeason);
+  readonly season = signal(this.save().currentSeason);
 
-  private readonly stored = load(this.initial.id);
+  private readonly stored = load(this.save().id);
   readonly formationId = signal(this.stored?.formationId ?? FORMATIONS[0].id);
   readonly tiers = signal(this.stored?.tiers ?? DEFAULT_TIERS);
   private readonly plans = signal<Record<string, DepthPlan>>(this.stored?.plans ?? {});
@@ -116,6 +167,7 @@ export class PlanStore {
 
   constructor() {
     effect(() => {
+      if (!this.hasSave()) return;
       persist(this.save().id, {
         formationId: this.formationId(),
         tiers: this.tiers(),
@@ -242,6 +294,34 @@ export class PlanStore {
           }
         : null,
     );
+  }
+
+  /**
+   * Replaces the squad with an import. Players who left come off every plan;
+   * everyone else keeps their places. Returns false if the browser refused to store it.
+   */
+  applyImport(save: SaveFile, leavingIds: string[]): boolean {
+    const stored = persistSave(save);
+    const leaving = new Set(leavingIds);
+    const plans = save.id === this.save().id ? this.plans() : (load(save.id)?.plans ?? {});
+    const cleaned: Record<string, DepthPlan> = {};
+    for (const [id, plan] of Object.entries(plans)) {
+      const slots: Record<string, string[]> = {};
+      for (const [slot, ids] of Object.entries(plan.slots)) slots[slot] = ids.filter((pid) => !leaving.has(pid));
+      cleaned[id] = { ...plan, slots };
+    }
+    this.save.set(save);
+    this.hasSave.set(true);
+    this.plans.set(cleaned);
+    this.season.set(save.currentSeason);
+    this.selectedId.set(null);
+    const n = `${save.players.length} ${save.players.length === 1 ? 'player' : 'players'}`;
+    this.say(
+      stored
+        ? `Imported ${n} from FM`
+        : `Imported ${n}. This browser wouldn't store them, so they're gone when you close the tab`,
+    );
+    return stored;
   }
 
   isLeft(player: Player): boolean {

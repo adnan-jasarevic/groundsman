@@ -67,4 +67,5 @@ export const DEV_SAVE: SaveFile = {
   dataNote: 'Development data, ratings estimated',
   players,
   shortlist,
+  sample: true,
 };

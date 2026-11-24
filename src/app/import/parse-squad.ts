@@ -100,9 +100,12 @@ export function parseSquad(input: string): SquadImport {
   const missing = COLUMN_KEYS.filter((k) => index[k] === undefined);
   const missingRequired = missing.filter((k) => COLUMNS[k].required);
   if (missingRequired.length) {
-    const names = missingRequired.map((k) => COLUMNS[k].label).join(', ');
+    const labels = missingRequired.map((k) => COLUMNS[k].label);
+    const names =
+      labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} or ${labels.at(-1)}`;
+    const columns = labels.length === 1 ? 'column. Add it' : 'columns. Add them';
     throw new ImportError(
-      `The export has no ${names} column. Add it to the view in FM and export again.`,
+      `The export has no ${names} ${columns} to the view in FM and export again.`,
     );
   }
   if (!rows.length) throw new ImportError('The export has no players.');

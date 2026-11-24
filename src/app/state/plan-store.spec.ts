@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { FICTIONAL_SAVE } from '../../testing/fictional-save';
 import { contractState } from '../domain/projection';
-import { PlanStore, SAVE } from './plan-store';
+import { loadSave, PlanStore, SAVE } from './plan-store';
 
 describe('PlanStore', () => {
   let store: PlanStore;
@@ -36,5 +36,18 @@ describe('PlanStore', () => {
     expect(store.plan().slots['st']).not.toEqual(edited);
     store.undo()!();
     expect(store.plan().slots['st']).toEqual(edited);
+  });
+
+  it('keeps places for players who stay and drops leavers on a re-import', () => {
+    store.move('p24', null, 'st', 0);
+    const leaver = store.plan().slots['st'].find((id) => id !== 'p24')!;
+    const save = { ...FICTIONAL_SAVE, id: FICTIONAL_SAVE.id, sample: false };
+    save.players = save.players.filter((p) => p.id !== leaver);
+    store.applyImport(save, [leaver]);
+
+    expect(store.plan().slots['st'][0]).toBe('p24');
+    expect(Object.values(store.plan().slots).flat()).not.toContain(leaver);
+    expect(store.notice()).toBe(`Imported ${save.players.length} players from FM`);
+    expect(loadSave()?.players.length).toBe(save.players.length);
   });
 });

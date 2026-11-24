@@ -11,7 +11,7 @@ import { Icon } from './ui/icon';
 })
 export class App {
   protected readonly store = inject(PlanStore);
-  protected readonly upcoming = ['Season timeline', 'Shortlist', 'Squad', 'Import from FM'];
+  protected readonly upcoming = ['Season timeline', 'Shortlist', 'Squad'];
 
   protected importDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

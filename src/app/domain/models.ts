@@ -103,6 +103,8 @@ export interface SaveFile {
   dataNote: string;
   players: Player[];
   shortlist: Player[];
+  /** Built-in sample squad, not the user's own. An import replaces it outright. */
+  sample?: boolean;
 }
 
 export interface DepthPlan {
