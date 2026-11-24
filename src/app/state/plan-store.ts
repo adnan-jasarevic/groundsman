@@ -1,8 +1,14 @@
 import { computed, effect, inject, Injectable, InjectionToken, signal } from '@angular/core';
 import { DEV_SAVE } from '../data/dev-save';
 import { formationById, FORMATIONS } from '../domain/formations';
-import { DepthPlan, Player, POSITION_LABEL, SaveFile } from '../domain/models';
-import { autoAssign, contractState, seasonFlags, shortName } from '../domain/projection';
+import { DepthPlan, Player, POSITION_LABEL, SaveFile, seasonLabel } from '../domain/models';
+import {
+  autoAssign,
+  ContractState,
+  contractState,
+  seasonFlags,
+  shortName,
+} from '../domain/projection';
 
 export const MIN_TIERS = 2;
 export const MAX_TIERS = 5;
@@ -41,6 +47,7 @@ export class PlanStore {
   private readonly initial = inject(SAVE);
   readonly save = signal<SaveFile>(this.initial);
   readonly baseSeason = computed(() => this.save().currentSeason);
+  readonly seasonStyle = computed(() => this.save().seasonStyle);
   readonly seasons = computed(() =>
     Array.from({ length: SEASONS_AHEAD + 1 }, (_, i) => this.baseSeason() + i),
   );
@@ -83,7 +90,14 @@ export class PlanStore {
   readonly shortlist = computed(() => this.save().shortlist);
 
   readonly flags = computed(() =>
-    seasonFlags(this.formation(), this.plan(), this.byId(), this.baseSeason(), this.season()),
+    seasonFlags(
+      this.formation(),
+      this.plan(),
+      this.byId(),
+      this.baseSeason(),
+      this.season(),
+      this.seasonStyle(),
+    ),
   );
 
   /** Slots with one or no active player, drawn as worn turf: slot id to 'no-cover' or 'empty'. */
@@ -170,7 +184,7 @@ export class PlanStore {
         let at = -1;
         for (let i = list.length - 1; i >= 0; i--) {
           const p = this.byId().get(list[i]);
-          if (list[i] !== playerId && p && contractState(p, season) === 'left') {
+          if (list[i] !== playerId && p && contractState(p, season, this.seasonStyle()) === 'left') {
             at = i;
             break;
           }
@@ -231,7 +245,17 @@ export class PlanStore {
   }
 
   isLeft(player: Player): boolean {
-    return contractState(player, this.season()) === 'left';
+    return this.contractOf(player) === 'left';
+  }
+
+  /** Contract state in the selected season. */
+  contractOf(player: Player): ContractState {
+    return contractState(player, this.season(), this.seasonStyle());
+  }
+
+  /** "2026/27" or "2048", depending on the save's league. */
+  seasonText(season: number): string {
+    return seasonLabel(season, this.seasonStyle());
   }
 
   private say(text: string, undo: (() => void) | null = null): void {

@@ -35,7 +35,7 @@
       @for (s of store.seasons(); track s; let i = $index) {
         <label [class.on]="store.season() === s">
           <input type="radio" name="season" [value]="s" [checked]="store.season() === s" (change)="setSeason(s)" />
-          <span class="season">{{ seasonLabel(s) }}</span>
+          <span class="season">{{ store.seasonText(s) }}</span>
           @if (i === 0) { <span class="now">Now</span> }
         </label>
       }
@@ -99,7 +99,7 @@
         <app-player-detail />
       } @else {
         <section class="panel">
-          <h2 class="panel-title">{{ seasonLabel(store.season()) }} flags</h2>
+          <h2 class="panel-title">{{ store.seasonText(store.season()) }} flags</h2>
           @if (store.flags().length) {
             <ul class="flags">
               @for (f of store.flags(); track f.text) {
@@ -126,7 +126,7 @@
               <button type="button" class="row-btn" (click)="store.selectedId.set(t.id)" [class.placed]="placedTargets().has(t.id)">
                 <app-icon name="target" />
                 <span class="row-name">{{ short(t) }}<small>{{ bestPositions(t) }} · {{ t.age }}</small></span>
-                <app-stars [ability]="t.ability" [potential]="t.potential" />
+                <app-stars [ability]="t.ability" [potential]="t.potential" [potentialMax]="t.potentialMax" />
                 @if (placedTargets().has(t.id)) { <span class="tag amber">On plan</span> }
               </button>
             </div>
@@ -143,7 +143,7 @@
               (cdkDragEnded)="store.dragging.set(false)">
               <button type="button" class="row-btn" (click)="store.selectedId.set(p.id)" [class.left]="contractStateOf(p) === 'left'">
                 <span class="row-name">{{ short(p) }}<small>{{ bestPositions(p) }}</small></span>
-                <app-stars [ability]="p.ability" [potential]="p.potential" />
+                <app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" />
                 <span class="contract" [attr.data-state]="contractStateOf(p)">{{ contractYear(p) }}</span>
               </button>
             </div>
