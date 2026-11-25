@@ -17,56 +17,13 @@ import {
   seasonFlags,
   shortName,
 } from '../domain/projection';
+import { SaveLibrary } from './save-library';
+import { readPlans, StoredPlans } from './save-storage';
 
 export const MIN_TIERS = 2;
 export const MAX_TIERS = 5;
 export const DEFAULT_TIERS = 3;
 export const SEASONS_AHEAD = 3;
-
-interface StoredPlans {
-  formationId: string;
-  tiers: number;
-  plans: Record<string, DepthPlan>;
-}
-
-/** Local-only storage: the plan lives in this browser. */
-function load(saveId: string): StoredPlans | null {
-  try {
-    const raw = localStorage.getItem(`groundsman.plans.${saveId}`);
-    return raw ? (JSON.parse(raw) as StoredPlans) : null;
-  } catch {
-    return null;
-  }
-}
-
-function persist(saveId: string, value: StoredPlans): void {
-  try {
-    localStorage.setItem(`groundsman.plans.${saveId}`, JSON.stringify(value));
-  } catch {
-    // Storage blocked or full: the plan keeps working for this session.
-  }
-}
-
-const SAVE_KEY = 'groundsman.save';
-
-/** The imported squad, kept in this browser. */
-export function loadSave(): SaveFile | null {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? (JSON.parse(raw) as SaveFile) : null;
-  } catch {
-    return null;
-  }
-}
-
-function persistSave(save: SaveFile): boolean {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * The save the planner opens: the one saved in this browser, else the
@@ -74,12 +31,13 @@ function persistSave(save: SaveFile): boolean {
  */
 export const SAVE = new InjectionToken<SaveFile | null>('SAVE', {
   providedIn: 'root',
-  factory: () => loadSave() ?? (isDevMode() ? DEV_SAVE : null),
+  factory: () => inject(SaveLibrary).active() ?? (isDevMode() ? DEV_SAVE : null),
 });
 
 /** Stand-in while there's no squad, so the planner's views stay empty rather than missing. */
 const NO_SAVE: SaveFile = {
   id: 'none',
+  name: '',
   club: '',
   shortCode: '',
   game: 'FM27',
@@ -93,6 +51,7 @@ const NO_SAVE: SaveFile = {
 
 @Injectable({ providedIn: 'root' })
 export class PlanStore {
+  private readonly library = inject(SaveLibrary);
   private readonly initial = inject(SAVE);
   readonly save = signal<SaveFile>(this.initial ?? NO_SAVE);
   /** False until a squad is imported (or a sample squad is loaded). */
@@ -104,7 +63,7 @@ export class PlanStore {
   );
   readonly season = signal(this.save().currentSeason);
 
-  private readonly stored = load(this.save().id);
+  private readonly stored = readPlans(this.save().id);
   readonly formationId = signal(this.stored?.formationId ?? FORMATIONS[0].id);
   readonly tiers = signal(this.stored?.tiers ?? DEFAULT_TIERS);
   private readonly plans = signal<Record<string, DepthPlan>>(this.stored?.plans ?? {});
@@ -168,7 +127,7 @@ export class PlanStore {
   constructor() {
     effect(() => {
       if (!this.hasSave()) return;
-      persist(this.save().id, {
+      this.library.putPlans(this.save().id, {
         formationId: this.formationId(),
         tiers: this.tiers(),
         plans: this.plans(),
@@ -297,31 +256,70 @@ export class PlanStore {
   }
 
   /**
-   * Replaces the squad with an import. Players who left come off every plan;
-   * everyone else keeps their places. Returns false if the browser refused to store it.
+   * Stores an import. As a new save it opens with a fresh depth chart; as an
+   * update, players who left come off every plan and everyone else keeps their
+   * places. Returns false if the browser refused to store it.
    */
-  applyImport(save: SaveFile, leavingIds: string[]): boolean {
-    const stored = persistSave(save);
+  applyImport(save: SaveFile, leavingIds: string[], asNew: boolean): boolean {
+    const n = `${save.players.length} ${save.players.length === 1 ? 'player' : 'players'}`;
+    if (asNew) {
+      const stored = this.library.add([{ save, plans: null }]);
+      this.library.setActive(save.id);
+      this.open(save, null);
+      this.say(
+        stored
+          ? `Imported ${n} into ${save.name}`
+          : `Imported ${n}. This browser wouldn't store them, so they're gone when you close the tab`,
+      );
+      return stored;
+    }
+    const stored = this.library.put(save);
     const leaving = new Set(leavingIds);
-    const plans = save.id === this.save().id ? this.plans() : (load(save.id)?.plans ?? {});
     const cleaned: Record<string, DepthPlan> = {};
-    for (const [id, plan] of Object.entries(plans)) {
+    for (const [id, plan] of Object.entries(this.plans())) {
       const slots: Record<string, string[]> = {};
       for (const [slot, ids] of Object.entries(plan.slots)) slots[slot] = ids.filter((pid) => !leaving.has(pid));
       cleaned[id] = { ...plan, slots };
     }
     this.save.set(save);
-    this.hasSave.set(true);
     this.plans.set(cleaned);
     this.season.set(save.currentSeason);
     this.selectedId.set(null);
-    const n = `${save.players.length} ${save.players.length === 1 ? 'player' : 'players'}`;
     this.say(
       stored
         ? `Imported ${n} from FM`
         : `Imported ${n}. This browser wouldn't store them, so they're gone when you close the tab`,
     );
     return stored;
+  }
+
+  /** Opens another save from this browser. */
+  switchTo(id: string): void {
+    if (id === this.save().id && this.hasSave()) return;
+    const entry = this.library.entry(id);
+    if (!entry) return;
+    this.library.setActive(id);
+    this.open(entry.save, entry.plans);
+    this.say(`Switched to ${entry.save.name}`);
+  }
+
+  rename(id: string, name: string): void {
+    const entry = this.library.entry(id);
+    const trimmed = name.trim();
+    if (!entry || !trimmed) return;
+    const save = { ...entry.save, name: trimmed };
+    this.library.put(save);
+    if (this.save().id === id) this.save.set(save);
+  }
+
+  /** Deletes a save for good. If it was open, the next save opens, or none. */
+  deleteSave(id: string): void {
+    const wasOpen = this.save().id === id;
+    this.library.remove(id);
+    if (!wasOpen) return;
+    const next = this.library.activeId();
+    const entry = next ? this.library.entry(next) : null;
+    this.open(entry?.save ?? null, entry?.plans ?? null);
   }
 
   isLeft(player: Player): boolean {
@@ -336,6 +334,17 @@ export class PlanStore {
   /** "2026/27" or "2048", depending on the save's league. */
   seasonText(season: number): string {
     return seasonLabel(season, this.seasonStyle());
+  }
+
+  private open(save: SaveFile | null, stored: StoredPlans | null): void {
+    this.save.set(save ?? NO_SAVE);
+    this.hasSave.set(save !== null);
+    this.season.set((save ?? NO_SAVE).currentSeason);
+    this.formationId.set(stored?.formationId ?? FORMATIONS[0].id);
+    this.tiers.set(stored?.tiers ?? DEFAULT_TIERS);
+    this.plans.set(stored?.plans ?? {});
+    this.selectedId.set(null);
+    this.say('');
   }
 
   private say(text: string, undo: (() => void) | null = null): void {

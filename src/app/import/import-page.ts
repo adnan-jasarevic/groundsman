@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   Player,
   POSITION_LABEL,
@@ -8,6 +8,8 @@ import {
   SeasonStyle,
 } from '../domain/models';
 import { PlanStore, tierName } from '../state/plan-store';
+import { SaveLibrary } from '../state/save-library';
+import { suggestName } from '../state/save-storage';
 import { Icon } from '../ui/icon';
 import { Stars } from '../ui/stars';
 import {
@@ -31,13 +33,14 @@ interface Loaded {
 @Component({
   selector: 'app-import-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Stars],
+  imports: [Icon, Stars, RouterLink],
   templateUrl: './import-page.html',
   host: { class: 'page' },
 })
 export class ImportPage {
   protected readonly store = inject(PlanStore);
   private readonly router = inject(Router);
+  private readonly library = inject(SaveLibrary);
 
   protected readonly loaded = signal<Loaded | null>(null);
   protected readonly error = signal('');
@@ -48,13 +51,32 @@ export class ImportPage {
   protected readonly showUnchanged = signal(false);
 
   protected readonly club = signal('');
+  /** Typed by the user; until then the name follows the club. */
+  protected readonly typedName = signal<string | null>(null);
   protected readonly style = signal<SeasonStyle>('split');
   protected readonly season = signal<number | null>(null);
 
-  /** The squad an import would replace; a sample squad doesn't count. */
-  private readonly existing = computed(() =>
+  /** The open save, which an import can update; a sample squad doesn't count. */
+  protected readonly current = computed(() =>
     this.store.hasSave() && !this.store.save().sample ? this.store.save() : null,
   );
+
+  /** Update the open save, or start a new one. "Add save" links here with ?as=new. */
+  protected readonly target = signal<'update' | 'new'>(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('as') === 'new' ? 'new' : 'update',
+  );
+  protected readonly asNew = computed(() => this.target() === 'new' || !this.current());
+
+  /** The squad an import would replace, or none when it starts a new save. */
+  private readonly existing = computed(() => (this.asNew() ? null : this.current()));
+
+  protected readonly suggestedName = computed(() =>
+    suggestName(
+      this.club() || 'New save',
+      this.library.saves().map((s) => s.name),
+    ),
+  );
+  protected readonly saveName = computed(() => this.typedName() ?? this.suggestedName());
 
   protected readonly preview = computed<ImportPreview | null>(() => {
     const loaded = this.loaded();
@@ -108,6 +130,7 @@ export class ImportPage {
     () =>
       !!this.preview()?.players.length &&
       this.club().trim() !== '' &&
+      (!this.asNew() || this.saveName().trim() !== '') &&
       this.season() !== null &&
       this.season()! >= 1900 &&
       this.season()! <= 2300,
@@ -116,6 +139,9 @@ export class ImportPage {
   protected readonly footNote = computed(() => {
     const preview = this.preview();
     if (!preview) return '';
+    if (this.asNew() && this.current()) {
+      return `Groundsman builds a first depth chart for this save. ${this.current()!.name} stays as it is.`;
+    }
     if (preview.firstImport) return 'Groundsman builds a first depth chart from this squad.';
     return preview.leaving.length
       ? "Your depth chart keeps everyone who's staying. Leavers come off it."
@@ -157,6 +183,15 @@ export class ImportPage {
     if (this.store.hasSave()) void this.router.navigate(['/depth-chart']);
   }
 
+  protected setTarget(target: 'update' | 'new'): void {
+    this.target.set(target);
+    const loaded = this.loaded();
+    // The club box follows the choice: the open save's club for an update, blank for a new save.
+    if (loaded && this.club() === (target === 'new' ? this.current()?.club : '')) {
+      this.club.set(target === 'new' ? '' : (this.current()?.club ?? ''));
+    }
+  }
+
   protected setStyle(style: SeasonStyle): void {
     const players = this.loaded()?.result.players ?? [];
     // Follow the guess across a style change unless the season was typed in.
@@ -178,6 +213,7 @@ export class ImportPage {
     const save = buildSave(
       preview,
       {
+        name: this.asNew() ? this.saveName() : this.existing()!.name,
         club: this.club(),
         seasonStyle: this.style(),
         currentSeason: this.season()!,
@@ -188,6 +224,7 @@ export class ImportPage {
     this.store.applyImport(
       save,
       preview.leaving.map((p) => p.id),
+      this.asNew(),
     );
     this.chooseAnother();
     void this.router.navigate(['/depth-chart']);
@@ -246,6 +283,7 @@ export class ImportPage {
     this.pasteText.set('');
     this.pasteOpen.set(false);
     this.club.set(existing?.club ?? this.club());
+    this.typedName.set(null);
     this.style.set(style);
     this.season.set(
       guessCurrentSeason(result.players, style) ?? existing?.currentSeason ?? new Date().getFullYear(),

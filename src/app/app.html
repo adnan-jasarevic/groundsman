@@ -2,13 +2,7 @@
   <nav class="rail" aria-label="Main">
     <p class="wordmark">Groundsman</p>
     @if (store.hasSave()) {
-      <div class="save">
-        <span class="crest" aria-hidden="true">{{ store.save().shortCode }}</span>
-        <span class="save-text">
-          <strong>{{ store.save().club }}</strong>
-          <small>{{ store.save().game }} · {{ store.save().dataNote }}</small>
-        </span>
-      </div>
+      <app-save-switcher />
       <a class="btn rail-import" routerLink="/import" routerLinkActive="on" ariaCurrentWhenActive="page">Import</a>
     }
     <ul class="nav">
@@ -19,12 +13,23 @@
         <li><span class="nav-soon" aria-disabled="true">{{ item }}<small>Soon</small></span></li>
       }
       <li><a routerLink="/import" routerLinkActive="on" ariaCurrentWhenActive="page">Import from FM</a></li>
+      <li><a routerLink="/saves" routerLinkActive="on" ariaCurrentWhenActive="page">Saves &amp; backup</a></li>
     </ul>
-    @if (store.hasSave()) {
-      <p class="rail-foot">
+    @if (library.problem(); as problem) {
+      <a class="rail-foot warn" routerLink="/saves">
+        <app-icon name="alert" />
+        <span>{{ problem === 'full' ? 'Storage is full' : "This browser won't store data" }}<small>Changes are lost
+            when you close the tab. Back up now.</small></span>
+      </a>
+    } @else if (store.hasSave()) {
+      <div class="rail-foot">
         <app-icon name="device" />
-        <span>Saved in this browser<small>Data as of {{ importDate(store.save().dataAsOf) }}</small></span>
-      </p>
+        <span>Saved in this browser<small>Data as of {{ importDate(store.save().dataAsOf) }}</small>
+          @if (!store.save().sample) {
+            <a routerLink="/saves" class="rail-backup">{{ backupText() }}</a>
+          }
+        </span>
+      </div>
     }
   </nav>
   <router-outlet />

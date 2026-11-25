@@ -41,6 +41,7 @@ const shortlist: Player[] = [
 
 export const FICTIONAL_SAVE: SaveFile = {
   id: 'sample-harrowgate',
+  name: 'Harrowgate Town',
   club: 'Harrowgate Town',
   shortCode: 'HT',
   game: 'FM26',

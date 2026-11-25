@@ -91,6 +91,8 @@ export interface Formation {
 
 export interface SaveFile {
   id: string;
+  /** The user's name for this save, e.g. "Man Utd 2nd go". Starts as the club name. */
+  name: string;
   club: string;
   shortCode: string;
   game: GameVersion;

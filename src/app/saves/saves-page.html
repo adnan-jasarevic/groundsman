@@ -1,0 +1,201 @@
+<div class="saves">
+  <header class="topbar">
+    <h1>Saves &amp; backup</h1>
+  </header>
+
+  @if (library.problem(); as problem) {
+    <p class="saves-problem" role="alert">
+      <app-icon name="alert" />
+      <span>
+        <strong>{{
+          problem === 'full'
+            ? "This browser's storage is full."
+            : "This browser won't store Groundsman's data."
+        }}</strong>
+        {{
+          problem === 'full'
+            ? 'Your latest changes are only in this tab. Back up everything now, then delete a save you no longer need.'
+            : 'It may be in a private window or set to block site data. Everything is lost when you close the tab, so back up before you leave.'
+        }}
+      </span>
+    </p>
+  }
+
+  <p class="notice saves-notice" aria-live="polite">{{ status() }}</p>
+
+  <div class="saves-layout">
+    <section class="board-col saves-col" aria-labelledby="saves-heading">
+      <div class="saves-col-head">
+        <h2 id="saves-heading" tabindex="-1">
+          <span class="count">{{ library.saves().length }}</span
+          >In this browser
+        </h2>
+        <a class="btn" routerLink="/import" [queryParams]="{ as: 'new' }"
+          ><app-icon name="plus" />Add save</a
+        >
+      </div>
+
+      <ul class="save-rows">
+        @for (s of library.saves(); track s.id) {
+          <li class="save-row" [class.open]="isOpen(s)" [attr.data-save]="s.id">
+            <span class="crest" aria-hidden="true">{{ s.shortCode }}</span>
+            @if (renamingId() === s.id) {
+              <form class="rename" (submit)="$event.preventDefault(); finishRename(s)">
+                <label class="sr-only" [for]="'rename-' + s.id">Name for {{ s.name }}</label>
+                <input
+                  class="rename-input"
+                  type="text"
+                  [id]="'rename-' + s.id"
+                  [value]="draftName()"
+                  maxlength="60"
+                  autocomplete="off"
+                  (input)="draftName.set($any($event.target).value)"
+                  (keydown.escape)="cancelRename(s)"
+                  [attr.aria-invalid]="draftName().trim() === ''"
+                />
+                <button type="submit" class="btn primary" [disabled]="draftName().trim() === ''">
+                  Save name
+                </button>
+                <button type="button" class="btn ghost" (click)="cancelRename(s)">Cancel</button>
+              </form>
+            } @else {
+              <span class="save-row-text">
+                <strong
+                  >{{ s.name }}
+                  @if (isOpen(s)) {
+                    <span class="tag open-tag">Open</span>
+                  }
+                </strong>
+                <small>{{ details(s) }}</small>
+              </span>
+              <span class="save-row-actions">
+                @if (!isOpen(s)) {
+                  <button type="button" class="text-btn" (click)="openSave(s)">
+                    Open<span class="sr-only"> {{ s.name }}</span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="text-btn"
+                  data-action="rename"
+                  (click)="startRename(s)"
+                >
+                  Rename<span class="sr-only"> {{ s.name }}</span>
+                </button>
+                <button type="button" class="text-btn" (click)="backupOne(s)">
+                  Back up<span class="sr-only"> {{ s.name }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="text-btn danger"
+                  data-action="delete"
+                  (click)="askDelete(s)"
+                >
+                  Delete<span class="sr-only"> {{ s.name }}</span>
+                </button>
+              </span>
+            }
+          </li>
+        } @empty {
+          <li class="saves-empty">
+            <p>No saves in this browser yet.</p>
+            <p class="muted">
+              Import a squad from FM, or restore a backup file from another browser.
+            </p>
+            <a class="btn primary" routerLink="/import">Import from FM</a>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <div class="saves-side">
+      <section class="side-panel" aria-labelledby="backup-heading">
+        <h2 id="backup-heading">Back up</h2>
+        <p class="backup-age" [class.stale]="backupStale()">
+          <app-icon [name]="backupStale() ? 'clock' : 'check'" />{{ backupAge() }}
+        </p>
+        <p>
+          One file holds every save and its depth charts. Keep it somewhere safe, or restore it in
+          another browser to carry on there.
+        </p>
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="!library.saves().length"
+          (click)="backupAll()"
+        >
+          <app-icon name="download" />Back up everything
+        </button>
+      </section>
+
+      <section class="side-panel" aria-labelledby="restore-heading">
+        <h2 id="restore-heading">Restore</h2>
+        <p>
+          Adds the saves from a backup file. Nothing here is replaced: a save that's already here
+          comes in as a copy marked "(restored)".
+        </p>
+        <label class="btn file-pick">
+          <input type="file" accept=".json,application/json" (change)="onRestoreFile($event)" />
+          <app-icon name="upload" />Choose backup file
+        </label>
+        @if (restoreError()) {
+          <p class="import-error" role="alert">
+            <app-icon name="alert" /><span>{{ restoreError() }}</span>
+          </p>
+        }
+      </section>
+
+      <p class="storage-note">
+        <app-icon name="device" />
+        <span
+          >Everything stays in this browser ({{ size() }}). Clearing site data deletes it, so keep a
+          backup.</span
+        >
+      </p>
+    </div>
+  </div>
+
+  <dialog #deleteDialog class="confirm" aria-labelledby="delete-title" (close)="onDialogClosed()">
+    @if (deleting(); as save) {
+      <form (submit)="$event.preventDefault(); confirmDelete()">
+        <h2 id="delete-title">Delete {{ save.name }}?</h2>
+        <p>
+          This removes its {{ save.players }} {{ save.players === 1 ? 'player' : 'players' }} and
+          every depth chart from this browser. It can't be undone.
+        </p>
+
+        <div class="confirm-backup">
+          @if (backedUpFirst()) {
+            <p>
+              <app-icon name="check" />Backup file saved. You can restore this save from it later.
+            </p>
+          } @else {
+            <p>Want a copy first?</p>
+            <button type="button" class="btn" (click)="backupOne(save)">
+              <app-icon name="download" />Back up this save
+            </button>
+          }
+        </div>
+
+        <label class="import-field">
+          <span
+            >Type <q>{{ save.name }}</q> to confirm</span
+          >
+          <input
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+            [value]="confirmText()"
+            (input)="confirmText.set($any($event.target).value)"
+          />
+        </label>
+
+        <div class="confirm-actions">
+          <button type="button" class="btn" (click)="closeDialog()">Cancel</button>
+          <button type="submit" class="btn danger" [disabled]="!canDelete()">Delete save</button>
+        </div>
+      </form>
+    }
+  </dialog>
+</div>

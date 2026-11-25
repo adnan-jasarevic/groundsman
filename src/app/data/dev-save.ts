@@ -58,6 +58,7 @@ const shortlist: Player[] = [
 
 export const DEV_SAVE: SaveFile = {
   id: 'dev-man-utd-2026',
+  name: 'Manchester United',
   club: 'Manchester United',
   shortCode: 'MU',
   game: 'FM27',

@@ -1,10 +1,35 @@
 <div class="import" [class.reviewing]="preview()">
   <header class="topbar">
     <h1>Import from FM</h1>
+    @if (current(); as cur) {
+      <fieldset class="import-target">
+        <legend class="sr-only">Import into</legend>
+        <div class="segmented">
+          <label [class.on]="target() === 'update'">
+            <input
+              type="radio"
+              name="import-target"
+              [checked]="target() === 'update'"
+              (change)="setTarget('update')"
+            />
+            <span>Update {{ cur.name }}</span>
+          </label>
+          <label [class.on]="target() === 'new'">
+            <input
+              type="radio"
+              name="import-target"
+              [checked]="target() === 'new'"
+              (change)="setTarget('new')"
+            />
+            <span>New save</span>
+          </label>
+        </div>
+      </fieldset>
+    }
   </header>
 
   @if (preview(); as pv) {
-    <section class="import-band" aria-label="Save details">
+    <section class="import-band" [class.named]="asNew()" aria-label="Save details">
       <div class="file-chip">
         <app-icon name="file" [size]="20" />
         <span class="file-text">
@@ -19,6 +44,24 @@
         <input type="text" [value]="club()" (input)="club.set($any($event.target).value)" placeholder="Your club's name"
           autocomplete="off" [attr.aria-invalid]="club().trim() === ''" />
       </label>
+
+      @if (asNew()) {
+        <label class="import-field">
+          <span>Save name</span>
+          <input
+            type="text"
+            [value]="saveName()"
+            (input)="typedName.set($any($event.target).value)"
+            maxlength="60"
+            autocomplete="off"
+            [attr.aria-invalid]="saveName().trim() === ''"
+            aria-describedby="name-hint"
+          />
+          <small id="name-hint"
+            >Tells your saves apart, e.g. "{{ club() || 'Man Utd' }} 2nd go".</small
+          >
+        </label>
+      }
 
       <fieldset class="import-field">
         <legend>Seasons run</legend>
@@ -158,7 +201,10 @@
         <p class="import-error" role="alert"><app-icon name="alert" /><span>{{ error() }}</span></p>
       }
 
-      <p class="how">In FM, open the squad view you want and press Ctrl+P to save it as a file.</p>
+      <p class="how">
+        In FM, open the squad view you want and press Ctrl+P to save it as a file. Moving from
+        another browser? <a routerLink="/saves">Restore a backup</a> instead.
+      </p>
 
       <div class="paste">
         <button type="button" class="text-btn" [attr.aria-expanded]="pasteOpen()" (click)="pasteOpen.set(!pasteOpen())">

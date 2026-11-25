@@ -13,6 +13,11 @@ const PATHS = {
   arrow: 'M5 12h14M13 6l6 6-6 6',
   upload: 'M12 15V4M7 9l5-5 5 5M4 15v5h16v-5',
   file: 'M14 3H6v18h12V7l-4-4zM14 3v4h4',
+  chevron: 'M7 10l5 5 5-5',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  plus: 'M12 5v14M5 12h14',
+  download: 'M12 4v11M7 10l5 5 5-5M4 20h16',
+  stack: 'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5',
 } as const;
 
 export type IconName = keyof typeof PATHS;
