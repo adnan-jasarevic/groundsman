@@ -183,14 +183,35 @@ export function seasonFlags(
   return flags;
 }
 
+/** Words that belong to the surname that follows them, as in "De Luca" or "van der Berg". */
+// prettier-ignore
+const SURNAME_PARTICLES = new Set([
+  'da', 'das', 'de', 'dei', 'del', 'della', 'delle', 'der', 'des', 'di', 'do', 'dos', 'du',
+  'den', 'het', 'la', 'le', 'op', 'ten', 'ter', 'van', 'von', 'zu', 'zum', 'zur',
+  'al', 'el', 'ben', 'bin', 'ibn',
+]);
+
+function nameParts(player: Player): string[] {
+  return player.name.trim().split(/\s+/);
+}
+
+/** Index of the first word of the surname: the last word plus any particles before it. */
+function surnameStart(parts: string[]): number {
+  let start = parts.length - 1;
+  // The first word is always the first name, even when it looks like a particle.
+  while (start > 1 && SURNAME_PARTICLES.has(parts[start - 1].toLowerCase())) start--;
+  return start;
+}
+
 export function surname(player: Player): string {
   if (player.known) return player.known;
-  const parts = player.name.split(' ');
-  return parts[parts.length - 1];
+  const parts = nameParts(player);
+  return parts.slice(surnameStart(parts)).join(' ');
 }
 
 export function shortName(player: Player): string {
   if (player.known) return player.known;
-  const parts = player.name.split(' ');
-  return parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : player.name;
+  const parts = nameParts(player);
+  if (parts.length < 2) return player.name.trim();
+  return `${parts[0][0]}. ${parts.slice(surnameStart(parts)).join(' ')}`;
 }

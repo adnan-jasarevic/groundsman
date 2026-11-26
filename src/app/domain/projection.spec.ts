@@ -9,6 +9,8 @@ import {
   lastSeason,
   seasonFlags,
   seasonsLeft,
+  shortName,
+  surname,
 } from './projection';
 
 const player = (over: Partial<Player> = {}): Player => ({
@@ -80,6 +82,43 @@ describe('labels', () => {
     expect(formatStars(4)).toBe('4.0');
     expect(formatStars(2, 3)).toBe('2.0–3.0');
     expect(formatStars(3, 3)).toBe('3.0');
+  });
+});
+
+describe('names', () => {
+  const named = (name: string, known?: string) => player({ name, known });
+
+  it('uses the last word as the surname', () => {
+    expect(surname(named('Tom Ashworth'))).toBe('Ashworth');
+    expect(shortName(named('Tom Ashworth'))).toBe('T. Ashworth');
+  });
+
+  it('keeps particles with the surname', () => {
+    expect(surname(named('Marco De Luca'))).toBe('De Luca');
+    expect(surname(named('Jan van der Berg'))).toBe('van der Berg');
+    expect(surname(named('João dos Santos'))).toBe('dos Santos');
+    expect(surname(named('Salem Al Dawsari'))).toBe('Al Dawsari');
+    expect(shortName(named('Jan van der Berg'))).toBe('J. van der Berg');
+  });
+
+  it('drops middle names from the short name', () => {
+    expect(surname(named('Gabriel Fernando de Jesus'))).toBe('de Jesus');
+    expect(shortName(named('Gabriel Fernando de Jesus'))).toBe('G. de Jesus');
+  });
+
+  it('never takes the first name into the surname', () => {
+    expect(surname(named('Van Persie'))).toBe('Persie');
+  });
+
+  it('handles single names and stray spaces', () => {
+    expect(surname(named('Danilo'))).toBe('Danilo');
+    expect(shortName(named('Danilo'))).toBe('Danilo');
+    expect(surname(named(' Marco  De Luca '))).toBe('De Luca');
+  });
+
+  it('prefers the name fans use when one is set', () => {
+    expect(surname(named('Amad Diallo', 'Amad'))).toBe('Amad');
+    expect(shortName(named('Amad Diallo', 'Amad'))).toBe('Amad');
   });
 });
 
