@@ -18,6 +18,8 @@ const PATHS = {
   plus: 'M12 5v14M5 12h14',
   download: 'M12 4v11M7 10l5 5 5-5M4 20h16',
   stack: 'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5',
+  pencil: 'M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4',
+  search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
 } as const;
 
 export type IconName = keyof typeof PATHS;

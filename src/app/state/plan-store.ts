@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { DEV_SAVE } from '../data/dev-save';
+import { fmName, recordEdit } from '../domain/manual-edits';
 import { formationById, FORMATIONS } from '../domain/formations';
 import { DepthPlan, Player, POSITION_LABEL, SaveFile, seasonLabel } from '../domain/models';
 import {
@@ -74,6 +75,8 @@ export class PlanStore {
   readonly notice = signal('');
   /** One-step undo offered next to the notice, cleared by the next action. */
   readonly undo = signal<(() => void) | null>(null);
+  /** The player open in the edit sheet: an id, 'new' for adding one, or null when closed. */
+  readonly editing = signal<string | null>(null);
 
   readonly formation = computed(() => formationById(this.formationId()));
 
@@ -322,6 +325,61 @@ export class PlanStore {
     this.open(entry?.save ?? null, entry?.plans ?? null);
   }
 
+  /** Opens the edit sheet for a squad player, or for a new one with 'new'. */
+  edit(id: string | 'new'): void {
+    this.editing.set(id);
+  }
+
+  closeEditor(): void {
+    this.editing.set(null);
+  }
+
+  /**
+   * Stores a player from the edit sheet. A new id adds them to the bench as
+   * added by hand; an existing one keeps FM's values for what was changed.
+   */
+  savePlayer(player: Player): void {
+    const save = this.save();
+    const before = save.players.find((p) => p.id === player.id);
+    const next = before ? recordEdit(before, player) : { ...player, added: true };
+    const players = before
+      ? save.players.map((p) => (p.id === player.id ? next : p))
+      : [...save.players, next];
+    this.commitSave({ ...save, players });
+    this.editing.set(null);
+    this.say(
+      before ? `${shortName(next)} saved` : `${shortName(next)} added to the squad, on the bench`,
+    );
+  }
+
+  /** Takes a player out of the squad and every plan. A re-import leaves them out too. */
+  removePlayer(id: string): void {
+    const save = this.save();
+    const player = save.players.find((p) => p.id === id);
+    if (!player) return;
+    const previousPlans = this.plans();
+    const removed = player.added ? save.removed : [...(save.removed ?? []), fmName(player)];
+    const plans: Record<string, DepthPlan> = {};
+    for (const [fid, plan] of Object.entries(previousPlans)) {
+      const slots: Record<string, string[]> = {};
+      for (const [slot, ids] of Object.entries(plan.slots)) slots[slot] = ids.filter((x) => x !== id);
+      plans[fid] = { ...plan, slots };
+    }
+    this.commitSave({
+      ...save,
+      players: save.players.filter((p) => p.id !== id),
+      ...(removed?.length ? { removed } : {}),
+    });
+    this.plans.set(plans);
+    this.editing.set(null);
+    if (this.selectedId() === id) this.selectedId.set(null);
+    this.say(`${shortName(player)} removed from the squad`, () => {
+      this.commitSave(save);
+      this.plans.set(previousPlans);
+      this.say(`${shortName(player)} is back in the squad`);
+    });
+  }
+
   isLeft(player: Player): boolean {
     return this.contractOf(player) === 'left';
   }
@@ -345,6 +403,12 @@ export class PlanStore {
     this.plans.set(stored?.plans ?? {});
     this.selectedId.set(null);
     this.say('');
+  }
+
+  /** Updates the open save, storing it when it's one of the user's own. */
+  private commitSave(save: SaveFile): void {
+    this.save.set(save);
+    if (this.library.activeId() === save.id) this.library.put(save);
   }
 
   private say(text: string, undo: (() => void) | null = null): void {

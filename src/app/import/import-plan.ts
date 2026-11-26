@@ -1,4 +1,22 @@
-import { formatDate, formatStars, Player, POSITION_LABEL, PositionCode, SaveFile, SeasonStyle } from '../domain/models';
+import {
+  fieldValue,
+  FIELD_LABEL,
+  fmName,
+  formatValue,
+  sameValue,
+  withValue,
+} from '../domain/manual-edits';
+import {
+  FmField,
+  FmValues,
+  formatDate,
+  formatStars,
+  Player,
+  POSITION_LABEL,
+  PositionCode,
+  SaveFile,
+  SeasonStyle,
+} from '../domain/models';
 import { lastSeason } from '../domain/projection';
 import { newSaveId } from '../state/save-storage';
 import { ColumnKey, ImportedPlayer, ImportIssue } from './parse-squad';
@@ -25,6 +43,28 @@ export interface StayingPlayer {
   unread?: boolean;
 }
 
+/** A field the user changed by hand where this export says something else. */
+export interface KeptEdit {
+  /** "playerId:field", the key ImportChoices.useFm takes. */
+  key: string;
+  playerId: string;
+  name: string;
+  field: FmField;
+  label: string;
+  yours: string;
+  fm: string;
+  /** True when the user picked FM's value for this import. */
+  useFm: boolean;
+}
+
+/** What the user picked in the preview. Edits are kept and removals stay unless picked here. */
+export interface ImportChoices {
+  useFm: ReadonlySet<string>;
+  bringBack: ReadonlySet<string>;
+}
+
+const NO_CHOICES: ImportChoices = { useFm: new Set(), bringBack: new Set() };
+
 export interface ImportPreview {
   /** Every player the save will hold after the import. */
   players: Player[];
@@ -35,6 +75,14 @@ export interface ImportPreview {
   firstImport: boolean;
   /** Ability shown as a range in FM; the low end is used. */
   abilityRanges: number;
+  /** Hand edits where FM says something else. */
+  edits: KeptEdit[];
+  /** Players added by hand who aren't in the export. They stay. */
+  addedKept: Player[];
+  /** Players removed by hand who are in the export, by name, and whether they come back. */
+  removedSeen: { name: string; back: boolean }[];
+  /** FM names of removed players after this import. */
+  removed: string[];
 }
 
 /**
@@ -47,8 +95,11 @@ export function planImport(
   imported: ImportedPlayer[],
   existing: SaveFile | null,
   issues: ImportIssue[] = [],
+  choices: ImportChoices = NO_CHOICES,
 ): ImportPreview {
   const current = existing && !existing.sample ? existing.players : [];
+  const removedBefore = existing && !existing.sample ? (existing.removed ?? []) : [];
+  const removed = new Set(removedBefore);
   const skipped = new Set(issues.filter((i) => i.skipped && i.player).map((i) => i.player!));
   const unreadable = new Map<string, Set<ColumnKey>>();
   for (const i of issues) {
@@ -60,23 +111,49 @@ export function planImport(
   const arriving: Player[] = [];
   const staying: StayingPlayer[] = [];
   const players: Player[] = [];
+  // A column the view doesn't have says nothing about a hand edit.
+  const absent = new Set(
+    (['ability', 'potential', 'contractExpires', 'squadStatus', 'nationality'] as const).filter(
+      (k) => imported.every((r) => r[k] === undefined),
+    ),
+  );
+  const edits: KeptEdit[] = [];
+  const removedSeen: { name: string; back: boolean }[] = [];
   let abilityRanges = 0;
 
   for (const row of imported) {
+    if (removed.has(row.name)) {
+      const back = choices.bringBack.has(row.name);
+      removedSeen.push({ name: row.name, back });
+      if (!back) continue;
+      removed.delete(row.name);
+    }
     if (row.ability && row.ability.max !== row.ability.min) abilityRanges++;
-    const at = unmatched.findIndex((p) => p.name === row.name);
+    const at = unmatched.findIndex((p) => fmName(p) === row.name);
     const before = at >= 0 ? unmatched.splice(at, 1)[0] : undefined;
-    const player = toPlayer(row, before?.id ?? newId(row.name, usedIds), before);
-    if (before) keepUnreadable(player, before, unreadable.get(row.name));
+    let player = toPlayer(row, before?.id ?? newId(row.name, usedIds), before);
+    if (before) {
+      const columns = unreadable.get(row.name);
+      keepUnreadable(player, before, columns);
+      if (before.fm) {
+        const unknown = new Set<ColumnKey>([...absent, ...(columns ?? [])]);
+        player = keepEdits(player, before, unknown, choices, edits);
+      }
+    }
     players.push(player);
     if (before) staying.push({ player, changes: changesBetween(before, player) });
     else arriving.push(player);
   }
 
-  // Players whose rows were skipped haven't left; keep them untouched.
+  // Players whose rows were skipped haven't left, and neither have players
+  // added by hand; keep them untouched.
   const leaving: Player[] = [];
+  const addedKept: Player[] = [];
   for (const before of unmatched) {
-    if (skipped.has(before.name)) {
+    if (before.added) {
+      players.push(before);
+      addedKept.push(before);
+    } else if (skipped.has(fmName(before))) {
       players.push(before);
       staying.push({ player: before, changes: [], unread: true });
     } else {
@@ -91,6 +168,10 @@ export function planImport(
     leaving,
     firstImport: current.length === 0,
     abilityRanges,
+    edits,
+    addedKept,
+    removedSeen,
+    removed: [...removed],
   };
 }
 
@@ -109,7 +190,61 @@ export function buildSave(preview: ImportPreview, details: ImportDetails, existi
     dataNote: `Imported from ${details.fileName}`,
     players: preview.players,
     shortlist: existing && !existing.sample ? existing.shortlist : [],
+    ...(preview.removed.length ? { removed: preview.removed } : {}),
   };
+}
+
+/** The export's column behind each field FM fills in. */
+const FIELD_COLUMNS: Partial<Record<FmField, ColumnKey[]>> = {
+  ability: ['ability'],
+  potential: ['potential'],
+  contractExpires: ['contractExpires'],
+  positions: ['position', 'bestPosition'],
+  squadStatus: ['squadStatus'],
+  nationality: ['nationality'],
+};
+
+/**
+ * Hand edits win over the export unless the user picked FM's value. An edit
+ * FM now agrees with is no longer an edit. Where the export's value couldn't
+ * be read, the edit and FM's earlier value both stand.
+ */
+function keepEdits(
+  player: Player,
+  before: Player,
+  unreadable: Set<ColumnKey> | undefined,
+  choices: ImportChoices,
+  edits: KeptEdit[],
+): Player {
+  let next = player;
+  const fm: FmValues = {};
+  for (const field of Object.keys(before.fm!) as FmField[]) {
+    const yours = fieldValue(before, field);
+    if (FIELD_COLUMNS[field]?.some((c) => unreadable?.has(c))) {
+      next = withValue(next, field, yours);
+      (fm as Record<string, unknown>)[field] = before.fm![field];
+      continue;
+    }
+    const fmNow = fieldValue(player, field);
+    if (sameValue(field, yours, fmNow)) continue;
+    const key = `${before.id}:${field}`;
+    const useFm = choices.useFm.has(key);
+    edits.push({
+      key,
+      playerId: before.id,
+      name: before.name,
+      field,
+      label: FIELD_LABEL[field],
+      yours: formatValue(field, yours),
+      fm: formatValue(field, fmNow),
+      useFm,
+    });
+    if (useFm) continue;
+    next = withValue(next, field, yours);
+    (fm as Record<string, unknown>)[field] = fmNow;
+  }
+  if (Object.keys(fm).length) next = { ...next, fm };
+  return next;
 }
 
 /** Calendar-year leagues end contracts late in the year; split seasons mid-year. */
