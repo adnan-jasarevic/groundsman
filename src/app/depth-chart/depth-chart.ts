@@ -2,9 +2,9 @@ import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cd
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FORMATIONS } from '../domain/formations';
 import { FormationSlot, Player, POSITION_LABEL, PositionCode } from '../domain/models';
-import { shortName } from '../domain/projection';
+import { Flag, shortName } from '../domain/projection';
 import { MAX_TIERS, MIN_TIERS, PlanStore, tierName } from '../state/plan-store';
-import { Icon } from '../ui/icon';
+import { Icon, IconName } from '../ui/icon';
 import { Stars } from '../ui/stars';
 import { PlayerChip } from './player-chip';
 import { PlayerDetail } from './player-detail';
@@ -42,6 +42,17 @@ export class DepthChart {
   protected readonly placedTargets = computed(
     () => new Set(this.store.shortlist().filter((t) => this.store.placedIds().has(t.id)).map((t) => t.id)),
   );
+
+  /** Critical and warning counts for the phone flags strip. */
+  protected readonly flagCounts = computed(() => {
+    const flags = this.store.flags();
+    const critical = flags.filter((f) => f.severity === 'critical').length;
+    return { critical, warning: flags.length - critical };
+  });
+
+  protected flagIcon(f: Flag): IconName {
+    return f.kind === 'ageing' ? 'hourglass' : f.kind.startsWith('contract') ? 'clock' : 'alert';
+  }
 
   protected players(slot: FormationSlot): Player[] {
     return (this.store.plan().slots[slot.id] ?? [])
