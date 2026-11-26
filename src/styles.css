@@ -125,6 +125,7 @@ input {
 
 .rail {
   position: sticky;
+  z-index: 5;
   top: 0;
   height: 100vh;
   display: flex;
@@ -141,13 +142,149 @@ input {
   padding: 0 8px;
 }
 
+.switcher {
+  position: relative;
+  display: block;
+}
+
 .save {
   display: flex;
   gap: 10px;
   align-items: center;
+  width: 100%;
   padding: 10px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease-out),
+    background 0.15s var(--ease-out);
+}
+
+.save:hover,
+.save[aria-expanded='true'] {
+  border-color: var(--chalk-3);
+  background: var(--raise);
+}
+
+.save .save-text small,
+.switch-save .save-text strong,
+.switch-save .save-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-chevron {
+  margin-left: auto;
+  color: var(--chalk-3);
+  transition: rotate 0.2s var(--ease-out);
+}
+
+.save[aria-expanded='true'] .save-chevron {
+  rotate: 180deg;
+}
+
+/* Lifted over the shell, so it earns the drag lift's shadow. */
+.switch-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max(100%, 280px);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raise);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.6);
+  transform-origin: top left;
+  animation: panel-in 0.18s var(--ease-out);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 -4px;
+  }
+}
+
+.switch-saves {
+  display: grid;
+  gap: 2px;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+}
+
+.switch-save,
+.switch-action {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  text-decoration: none;
+  color: var(--chalk-2);
+  cursor: pointer;
+}
+
+.switch-save:hover,
+.switch-action:hover {
+  background: rgb(239 236 226 / 6%);
+  color: var(--chalk);
+}
+
+.switch-save.on {
+  color: var(--chalk);
+}
+
+.switch-save .save-text strong {
+  font-size: 15px;
+}
+
+.switch-check {
+  margin-left: auto;
+  color: var(--turf-b);
+}
+
+.crest.small {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.switch-empty {
+  padding: 8px;
+  font-size: 13px;
+  color: var(--chalk-3);
+}
+
+.switch-actions {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.switch-action {
+  font-weight: 500;
+}
+
+.switch-action > .icon {
+  width: 26px;
+  justify-content: center;
+}
+
+.switch-action .save-text small {
+  font-weight: 400;
 }
 
 .crest {
@@ -235,6 +372,39 @@ input {
   display: grid;
 }
 
+.rail-backup {
+  justify-self: start;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--chalk-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--chalk-3);
+}
+
+.rail-backup:hover {
+  color: var(--chalk);
+}
+
+/* Storage refused a write: the rail says so until it works again. */
+.rail-foot.warn {
+  padding: 10px;
+  margin: auto 0 0;
+  border-radius: 8px;
+  background: rgb(224 163 58 / 13%);
+  color: var(--amber-text);
+  text-decoration: none;
+}
+
+.rail-foot.warn > .icon {
+  margin-top: 2px;
+  color: var(--amber);
+}
+
+.rail-foot.warn small {
+  color: var(--amber-text);
+}
+
 /* ---------- Controls ---------- */
 
 .field {
@@ -313,6 +483,18 @@ input {
   color: var(--chalk-2);
 }
 
+.btn.danger {
+  background: rgb(214 90 69 / 16%);
+  border-color: var(--red);
+  color: var(--red-text);
+  font-weight: 600;
+}
+
+.btn.danger:not(:disabled):hover {
+  background: rgb(214 90 69 / 26%);
+  color: var(--chalk);
+}
+
 .icon-btn {
   display: grid;
   place-items: center;
@@ -343,6 +525,15 @@ input {
 
 .text-btn:hover {
   color: var(--chalk);
+}
+
+.text-btn.danger {
+  color: var(--red-text);
+  text-decoration-color: var(--red);
+}
+
+.text-btn.danger:hover {
+  color: var(--red-strong-text);
 }
 
 .tag {
@@ -1612,9 +1803,367 @@ input {
   color: var(--chalk-3);
 }
 
+.import-target {
+  margin-left: auto;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.import-target .segmented {
+  height: 36px;
+}
+
+.import-target .segmented label {
+  font-size: 14px;
+}
+
+.import-target .segmented label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 28ch;
+}
+
+.import-band.named {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 0.8fr);
+}
+
+.how a {
+  color: var(--chalk-2);
+  text-underline-offset: 3px;
+  text-decoration-color: var(--chalk-3);
+}
+
+.how a:hover {
+  color: var(--chalk);
+}
+
+/* ---------- Saves & backup ---------- */
+
+.saves {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  min-height: 100vh;
+}
+
+.saves-problem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 24px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgb(214 90 69 / 16%);
+  color: var(--red-text);
+}
+
+.saves-problem > .icon {
+  margin-top: 2px;
+  color: var(--red);
+}
+
+.saves-problem strong {
+  color: var(--chalk);
+}
+
+.saves-notice {
+  padding: 10px 24px 0;
+}
+
+.saves-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 16px;
+  align-items: start;
+  padding: 6px 24px 32px;
+}
+
+.saves-col-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.saves-col-head h2 {
+  flex: 1;
+  padding: 0;
+  border: 0;
+}
+
+.saves-col-head h2:focus {
+  outline: none;
+}
+
+.saves-col-head .count {
+  color: var(--turf-b);
+}
+
+.saves-col-head .btn {
+  text-decoration: none;
+  color: var(--chalk);
+}
+
+.save-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 68px;
+  padding: 12px 16px;
+}
+
+.save-row + .save-row {
+  border-top: 1px solid var(--line);
+}
+
+.save-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.save-row-text strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 19px/1.15 var(--cond);
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.save-row-text small {
+  font-size: 13px;
+  color: var(--chalk-3);
+}
+
+.tag.open-tag {
+  background: var(--turf-a);
+  color: var(--chalk);
+}
+
+.save-row-actions {
+  display: flex;
+  gap: 4px 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rename {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rename input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--chalk-3);
+  border-radius: 6px;
+  background: var(--raise);
+  font: 600 17px var(--cond);
+  letter-spacing: 0.01em;
+}
+
+.saves-empty {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 24px 16px 20px;
+}
+
+.saves-empty p:first-child {
+  font: 600 20px/1.1 var(--cond);
+}
+
+.saves-empty .btn {
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.saves-side {
+  display: grid;
+  gap: 16px;
+}
+
+.side-panel {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--rail);
+}
+
+.side-panel h2 {
+  font: 600 15px/1 var(--cond);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.side-panel p {
+  color: var(--chalk-2);
+  max-width: 60ch;
+}
+
+.side-panel .btn {
+  margin-top: 4px;
+  padding: 9px 16px;
+  font-weight: 600;
+}
+
+.side-panel .file-pick {
+  margin-top: 4px;
+}
+
+.side-panel .import-error {
+  width: 100%;
+}
+
+.backup-age {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 22px/1.1 var(--cond);
+  letter-spacing: 0.01em;
+}
+
+.side-panel .backup-age {
+  color: var(--chalk);
+}
+
+.backup-age > .icon {
+  color: var(--turf-b);
+}
+
+.side-panel .backup-age.stale {
+  color: var(--amber-text);
+}
+
+.backup-age.stale > .icon {
+  color: var(--amber);
+}
+
+.storage-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--chalk-3);
+}
+
+.storage-note > .icon {
+  margin-top: 1px;
+}
+
+/* Deleting a save is the one step that needs a guarded, modal decision. */
+dialog.confirm {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--rail);
+  color: var(--chalk);
+  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.75);
+}
+
+dialog.confirm:focus-visible {
+  outline: none;
+}
+
+dialog.confirm[open] {
+  animation: dialog-in 0.22s var(--ease-out);
+}
+
+dialog.confirm::backdrop {
+  background: rgb(6 10 8 / 72%);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 8px;
+  }
+}
+
+.confirm form {
+  display: grid;
+  gap: 16px;
+  padding: 22px 22px 18px;
+}
+
+.confirm h2 {
+  font: 600 26px/1.05 var(--cond);
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.confirm p {
+  color: var(--chalk-2);
+}
+
+.confirm-backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.confirm-backup p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-backup .icon {
+  color: var(--turf-b);
+}
+
+.confirm-backup .btn .icon {
+  color: inherit;
+}
+
+.confirm .import-field > span {
+  line-height: 1.3;
+}
+
+.confirm q {
+  quotes: '“' '”';
+  color: var(--chalk);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 14px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-actions .btn {
+  padding: 9px 16px;
+}
+
 @media (max-width: 1100px) {
-  .import-band {
+  .import-band,
+  .import-band.named {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saves-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .file-chip {
@@ -1629,9 +2178,52 @@ input {
     grid-template-rows: none;
   }
 
-  .import-band {
+  .import-band,
+  .import-band.named {
     grid-template-columns: minmax(0, 1fr);
     padding: 14px 16px;
+  }
+
+  .import-target {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .import-target .segmented label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .saves-problem {
+    margin: 12px 16px 0;
+  }
+
+  .saves-notice {
+    padding: 8px 16px 0;
+  }
+
+  .saves-layout {
+    padding: 4px 16px 24px;
+  }
+
+  .save-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .save-row-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    margin-left: -4px;
+  }
+
+  .rename {
+    flex-wrap: wrap;
+  }
+
+  .rename input {
+    flex-basis: 100%;
   }
 
   .segmented label {
@@ -1754,10 +2346,24 @@ input {
     display: none;
   }
 
-  .save {
-    border: 0;
-    padding: 0;
+  .rail .rail-foot.warn {
+    display: flex;
+    order: 4;
+    width: 100%;
+  }
+
+  .switcher {
     margin-left: auto;
+    min-width: 0;
+  }
+
+  .save {
+    border-color: transparent;
+    padding: 4px 6px;
+  }
+
+  .switch-panel {
+    width: min(360px, calc(100vw - 32px));
   }
 
   .topbar {

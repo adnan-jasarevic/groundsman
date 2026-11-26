@@ -1,11 +1,11 @@
 import { formatDate, formatStars, Player, POSITION_LABEL, PositionCode, SaveFile, SeasonStyle } from '../domain/models';
 import { lastSeason } from '../domain/projection';
+import { newSaveId } from '../state/save-storage';
 import { ColumnKey, ImportedPlayer, ImportIssue } from './parse-squad';
 
-/** The id a save keeps across re-imports, until several saves are supported. */
-export const SAVE_ID = 'squad';
-
 export interface ImportDetails {
+  /** The save's own name, e.g. "Man Utd 2nd go". */
+  name: string;
   club: string;
   seasonStyle: SeasonStyle;
   currentSeason: number;
@@ -94,10 +94,12 @@ export function planImport(
   };
 }
 
+/** The save an import produces: an update of `existing`, or a new save when it's null. */
 export function buildSave(preview: ImportPreview, details: ImportDetails, existing: SaveFile | null): SaveFile {
   const club = details.club.trim();
   return {
-    id: SAVE_ID,
+    id: existing && !existing.sample ? existing.id : newSaveId(),
+    name: details.name.trim() || club,
     club,
     shortCode: shortCode(club),
     game: 'FM27',

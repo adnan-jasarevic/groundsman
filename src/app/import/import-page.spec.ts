@@ -3,7 +3,8 @@ import { provideRouter, Router } from '@angular/router';
 import { FICTIONAL_HEADERS, FICTIONAL_ROWS, toFmText } from '../../testing/fm-exports';
 import { App } from '../app';
 import { routes } from '../app.routes';
-import { loadSave, PlanStore, SAVE } from '../state/plan-store';
+import { PlanStore, SAVE } from '../state/plan-store';
+import { SaveLibrary } from '../state/save-library';
 
 describe('Import from FM', () => {
   let router: Router;
@@ -65,7 +66,11 @@ describe('Import from FM', () => {
     const store = TestBed.inject(PlanStore);
     expect(store.save().club).toBe('Harju Athletic');
     expect(store.seasonText(store.season())).toBe('2048');
-    expect(loadSave()?.players.length).toBe(8);
+    expect(
+      TestBed.inject(SaveLibrary)
+        .saves()
+        .map((s) => s.players),
+    ).toEqual([8]);
     expect(el.querySelector('.save')?.textContent).toContain('Harju Athletic');
 
     // The phone header's Import button hides itself on the import screen.

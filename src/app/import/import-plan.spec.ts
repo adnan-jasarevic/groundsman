@@ -5,7 +5,6 @@ import {
   guessCurrentSeason,
   guessSeasonStyle,
   planImport,
-  SAVE_ID,
   shortCode,
 } from './import-plan';
 import { ImportedPlayer } from './parse-squad';
@@ -108,11 +107,18 @@ describe('buildSave', () => {
     const preview = planImport([row()], mine);
     const save = buildSave(
       preview,
-      { club: ' Harju Athletic ', seasonStyle: 'calendar', currentSeason: 2048, fileName: 'first-team.rtf' },
+      {
+        name: ' Harju 2nd go ',
+        club: ' Harju Athletic ',
+        seasonStyle: 'calendar',
+        currentSeason: 2048,
+        fileName: 'first-team.rtf',
+      },
       mine,
     );
     expect(save).toMatchObject({
-      id: SAVE_ID,
+      id: mine.id,
+      name: 'Harju 2nd go',
       club: 'Harju Athletic',
       shortCode: 'HA',
       seasonStyle: 'calendar',
@@ -121,6 +127,23 @@ describe('buildSave', () => {
     });
     expect(save.shortlist).toBe(mine.shortlist);
     expect(save.sample).toBeUndefined();
+  });
+
+  it('gives a new save its own id and falls back to the club for its name', () => {
+    const save = buildSave(
+      planImport([row()], null),
+      {
+        name: '',
+        club: 'Harju Athletic',
+        seasonStyle: 'calendar',
+        currentSeason: 2048,
+        fileName: 'a.csv',
+      },
+      null,
+    );
+    expect(save.id).not.toBe(mine.id);
+    expect(save.name).toBe('Harju Athletic');
+    expect(save.shortlist).toEqual([]);
   });
 
   it('makes a short code from the club name', () => {
