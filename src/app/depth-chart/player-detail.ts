@@ -25,9 +25,14 @@ import { Stars } from '../ui/stars';
             <h2 id="detail-name">{{ p.name }}</h2>
             <p class="muted">{{ p.nationality }} · {{ p.target ? 'Shortlist target' : store.save().club }}</p>
           </div>
-          <button type="button" class="icon-btn" (click)="store.selectedId.set(null)" aria-label="Close player details">
-            <app-icon name="close" [size]="18" />
-          </button>
+          <div class="detail-actions">
+            @if (!p.target) {
+              <button type="button" class="btn" (click)="store.edit(p.id)"><app-icon name="pencil" [size]="15" />Edit</button>
+            }
+            <button type="button" class="icon-btn" (click)="store.selectedId.set(null)" aria-label="Close player details">
+              <app-icon name="close" [size]="18" />
+            </button>
+          </div>
         </header>
 
         <dl class="facts">

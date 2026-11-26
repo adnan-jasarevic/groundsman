@@ -1,4 +1,4 @@
-<div class="import" [class.reviewing]="preview()">
+<div class="import" [class.reviewing]="preview()" [class.has-yours]="hasYours()">
   <header class="topbar">
     <h1>Import from FM</h1>
     @if (current(); as cur) {
@@ -84,6 +84,56 @@
         <small id="season-hint">Taken from the earliest contract end. Check it matches your save.</small>
       </label>
     </section>
+
+    @if (hasYours()) {
+      <section class="yours" aria-labelledby="yours-title">
+        <div class="yours-head">
+          @if (pv.edits.length) {
+            <h2 id="yours-title">You changed {{ pv.edits.length }} {{ pv.edits.length === 1 ? 'thing' : 'things' }} by hand</h2>
+            <p>FM says something different. We keep yours unless you pick FM's.</p>
+          } @else {
+            <h2 id="yours-title">Your changes</h2>
+            <p>Players you added or removed by hand.</p>
+          }
+        </div>
+        @if (pv.edits.length) {
+          <ul class="yours-edits">
+            @for (e of pv.edits; track e.key) {
+              <li class="yr-row">
+                <span class="who"><strong>{{ e.name }}</strong></span>
+                <span class="what">{{ e.label }}</span>
+                <fieldset class="pick">
+                  <legend class="sr-only">{{ e.name }}, {{ e.label }}</legend>
+                  <label [class.on]="!e.useFm">
+                    <input type="radio" [name]="'pick-' + e.key" [checked]="!e.useFm" (change)="pickEdit(e.key, false)" />
+                    <b>{{ e.yours }}</b><small>Keep yours</small>
+                  </label>
+                  <label [class.on]="e.useFm">
+                    <input type="radio" [name]="'pick-' + e.key" [checked]="e.useFm" (change)="pickEdit(e.key, true)" />
+                    <b>{{ e.fm }}</b><small>Take FM's</small>
+                  </label>
+                </fieldset>
+              </li>
+            }
+          </ul>
+        }
+        @if (pv.addedKept.length || pv.removedSeen.length) {
+          <ul class="yours-also">
+            @for (p of pv.addedKept; track p.id) {
+              <li><app-icon name="check" /><span><strong>{{ p.name }}</strong>, who you added, isn't in this export. They stay.</span></li>
+            }
+            @for (r of pv.removedSeen; track r.name) {
+              <li>
+                <app-icon [name]="r.back ? 'check' : 'close'" />
+                <span><strong>{{ r.name }}</strong>, who you removed, is in this export.
+                  {{ r.back ? 'They come back with this import.' : 'They stay removed.' }}</span>
+                <button type="button" class="text-btn" (click)="toggleBack(r.name)">{{ r.back ? 'Keep removed' : 'Bring back' }}</button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
 
     <section class="import-board" [class.first]="pv.firstImport" aria-label="What this import changes">
       <div class="board-col arriving">

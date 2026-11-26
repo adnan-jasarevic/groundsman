@@ -49,6 +49,10 @@ export class ImportPage {
   protected readonly pasteText = signal('');
   protected readonly showAllProblems = signal(false);
   protected readonly showUnchanged = signal(false);
+  /** Hand edits the user wants FM's value for, as "playerId:field". */
+  protected readonly useFm = signal<ReadonlySet<string>>(new Set());
+  /** Removed players to bring back, by FM name. */
+  protected readonly bringBack = signal<ReadonlySet<string>>(new Set());
 
   protected readonly club = signal('');
   /** Typed by the user; until then the name follows the club. */
@@ -80,7 +84,12 @@ export class ImportPage {
 
   protected readonly preview = computed<ImportPreview | null>(() => {
     const loaded = this.loaded();
-    return loaded ? planImport(loaded.result.players, this.existing(), loaded.result.issues) : null;
+    return loaded
+      ? planImport(loaded.result.players, this.existing(), loaded.result.issues, {
+          useFm: this.useFm(),
+          bringBack: this.bringBack(),
+        })
+      : null;
   });
 
   /** Players with changes first. On phones the unchanged ones stay folded until asked for. */
@@ -136,9 +145,25 @@ export class ImportPage {
       this.season()! <= 2300,
   );
 
+  /** Edits kept as they are, for the footer. */
+  protected readonly keptEdits = computed(
+    () => (this.preview()?.edits ?? []).filter((e) => !e.useFm).length,
+  );
+
+  protected readonly hasYours = computed(() => {
+    const pv = this.preview();
+    return !!pv && (pv.edits.length > 0 || pv.addedKept.length > 0 || pv.removedSeen.length > 0);
+  });
+
   protected readonly footNote = computed(() => {
     const preview = this.preview();
     if (!preview) return '';
+    const kept = this.keptEdits();
+    const edits = kept ? ` Your ${kept === 1 ? 'edit is' : `${kept} edits are`} kept.` : '';
+    return this.baseNote(preview) + edits;
+  });
+
+  private baseNote(preview: ImportPreview): string {
     if (this.asNew() && this.current()) {
       return `Groundsman builds a first depth chart for this save. ${this.current()!.name} stays as it is.`;
     }
@@ -146,7 +171,25 @@ export class ImportPage {
     return preview.leaving.length
       ? "Your depth chart keeps everyone who's staying. Leavers come off it."
       : "Your depth chart keeps everyone who's staying.";
-  });
+  }
+
+  protected pickEdit(key: string, fm: boolean): void {
+    this.useFm.update((set) => {
+      const next = new Set(set);
+      if (fm) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  }
+
+  protected toggleBack(name: string): void {
+    this.bringBack.update((set) => {
+      const next = new Set(set);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
 
   protected onFile(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -176,6 +219,8 @@ export class ImportPage {
     this.error.set('');
     this.showAllProblems.set(false);
     this.showUnchanged.set(false);
+    this.useFm.set(new Set());
+    this.bringBack.set(new Set());
   }
 
   protected cancel(): void {

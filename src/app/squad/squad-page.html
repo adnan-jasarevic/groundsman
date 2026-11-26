@@ -1,0 +1,107 @@
+<div class="squad">
+  <header class="topbar">
+    <h1>Squad</h1>
+    <fieldset class="scrubber">
+      <legend class="sr-only">Season</legend>
+      @for (s of store.seasons(); track s; let i = $index) {
+        <label [class.on]="store.season() === s">
+          <input type="radio" name="squad-season" [value]="s" [checked]="store.season() === s" (change)="setSeason(s)" />
+          <span class="season">{{ store.seasonText(s) }}</span>
+          @if (i === 0) { <span class="now">Now</span> }
+        </label>
+      }
+    </fieldset>
+  </header>
+
+  <div class="squad-tools">
+    <label class="search">
+      <app-icon name="search" />
+      <span class="sr-only">Find a player</span>
+      <input type="search" placeholder="Find a player" autocomplete="off" [value]="query()"
+        (input)="query.set($any($event.target).value)" />
+    </label>
+    <fieldset class="group-filter">
+      <legend class="sr-only">Show</legend>
+      <label [class.on]="group() === 'all'">
+        <input type="radio" name="squad-group" [checked]="group() === 'all'" (change)="group.set('all')" />
+        <span>All <span class="num">{{ counts()['all'] }}</span></span>
+      </label>
+      @for (g of groups; track g.id) {
+        <label [class.on]="group() === g.id">
+          <input type="radio" name="squad-group" [checked]="group() === g.id" (change)="group.set(g.id)" />
+          <span>{{ g.short }} <span class="num">{{ counts()[g.id] }}</span></span>
+        </label>
+      }
+    </fieldset>
+    <button type="button" class="btn primary" (click)="store.edit('new')"><app-icon name="plus" />Add player</button>
+  </div>
+
+  <p class="notice squad-notice">
+    <span aria-live="polite">{{ store.notice() }}</span>
+    @if (store.undo(); as undo) {
+      <button type="button" class="text-btn" (click)="undo()">Undo</button>
+    }
+  </p>
+
+  <div class="sq-wrap">
+    <table class="sq">
+      <caption class="sr-only">Squad in {{ store.seasonText(store.season()) }}, {{ shown() }} players</caption>
+      <thead>
+        <tr>
+          <th scope="col" [attr.aria-sort]="ariaSort('name')">
+            <button type="button" class="sort" (click)="setSort('name')">Player</button>
+          </th>
+          <th scope="col" class="c-pos">Positions</th>
+          <th scope="col" class="c-num" [attr.aria-sort]="ariaSort('age')">
+            <button type="button" class="sort" (click)="setSort('age')">Age</button>
+          </th>
+          <th scope="col" class="c-abil" [attr.aria-sort]="ariaSort('ability')">
+            <button type="button" class="sort" (click)="setSort('ability')">Ability · potential</button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSort('contract')">
+            <button type="button" class="sort" (click)="setSort('contract')">Contract</button>
+          </th>
+          <th scope="col" class="c-plan">In the plan</th>
+          <th scope="col"><span class="sr-only">Edit</span></th>
+        </tr>
+      </thead>
+      @for (section of sections(); track section.id) {
+        <tbody>
+          <tr class="group">
+            <th scope="colgroup" colspan="7">{{ section.label }} <span class="count">{{ section.players.length }}</span></th>
+          </tr>
+          @for (p of section.players; track p.id) {
+            <tr [class.left]="store.contractOf(p) === 'left'">
+              <th scope="row">
+                <span class="nm">{{ p.name }}
+                  <small>{{ p.nationality || '–' }}@if (p.added) { · added by you }</small>
+                </span>
+              </th>
+              <td class="c-pos">{{ positions(p) }}</td>
+              <td class="c-num num">{{ age(p) }}</td>
+              <td class="c-abil"><app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" [size]="11" /></td>
+              <td><span class="yr" [attr.data-state]="store.contractOf(p)">{{ contractYear(p) }}</span></td>
+              <td class="c-plan">
+                @if (place(p); as where) { <span class="plan">{{ where }}</span> } @else { <span class="plan none">Bench</span> }
+              </td>
+              <td class="c-edit">
+                @if (edited(p)) { <span class="edited"><app-icon name="pencil" [size]="11" />Edited</span> }
+                <button type="button" class="icon-btn" (click)="store.edit(p.id)" [attr.aria-label]="'Edit ' + p.name">
+                  <app-icon name="pencil" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      } @empty {
+        <tbody>
+          <tr>
+            <td colspan="7" class="sq-empty">
+              @if (query().trim()) { No player matches "{{ query().trim() }}". } @else { Nobody here yet. }
+            </td>
+          </tr>
+        </tbody>
+      }
+    </table>
+  </div>
+</div>

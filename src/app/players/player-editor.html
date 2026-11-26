@@ -1,0 +1,207 @@
+<dialog #sheet class="editor" aria-labelledby="editor-title" (close)="onClose()">
+  @if (store.editing() !== null) {
+    <form class="editor-form" novalidate (submit)="$event.preventDefault(); submit()">
+      <header class="editor-head">
+        <div>
+          <h2 id="editor-title">{{ title() }}</h2>
+          <p>
+            @if (base(); as b) {
+              {{ b.added ? 'Added by you.' : 'Edit player.' }} Your changes stay when you import again.
+            } @else {
+              For a player the import missed. They join the bench.
+            }
+          </p>
+        </div>
+        <button type="button" class="icon-btn" (click)="cancel()" aria-label="Close without saving">
+          <app-icon name="close" [size]="18" />
+        </button>
+      </header>
+
+      <div class="editor-body">
+        <fieldset class="ef-group">
+          <legend>Player</legend>
+
+          <div class="ef-field">
+            <label for="ef-name">Name
+              @if (fmSays('name')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+            </label>
+            <input id="ef-name" type="text" autocomplete="off" maxlength="80" [value]="name()"
+              (input)="name.set(val($event))" [attr.aria-invalid]="tried() && problems().has('name')"
+              aria-describedby="ef-name-note" />
+            <small id="ef-name-note">
+              @if (tried() && problems().has('name')) {
+                <span class="ef-error">Add the player's name.</span>
+              } @else if (fmSays('name'); as fm) {
+                <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('name')">Use FM's</button></span>
+              }
+            </small>
+          </div>
+
+          <div class="ef-field">
+            <label for="ef-known">Name on the pitch</label>
+            <input id="ef-known" type="text" autocomplete="off" maxlength="30" [value]="known()"
+              (input)="known.set(val($event))" placeholder="Surname" aria-describedby="ef-known-note" />
+            <small id="ef-known-note">Leave empty to use the surname.</small>
+          </div>
+
+          <div class="ef-row">
+            <div class="ef-field">
+              <label for="ef-age">Age
+                @if (fmSays('age')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+              </label>
+              <input id="ef-age" type="number" inputmode="numeric" [min]="minAge" [max]="maxAge" [value]="age()"
+                (input)="age.set(val($event))" [attr.aria-invalid]="tried() && problems().has('age')"
+                aria-describedby="ef-age-note" />
+            </div>
+            <div class="ef-field">
+              <label for="ef-nation">Nation
+                @if (fmSays('nationality')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+              </label>
+              <input id="ef-nation" type="text" autocomplete="off" maxlength="40" [value]="nationality()"
+                (input)="nationality.set(val($event))" placeholder="e.g. ENG" />
+            </div>
+          </div>
+          <small id="ef-age-note" class="ef-note-row">
+            @if (tried() && problems().has('age')) {
+              <span class="ef-error">Age must be a whole number from {{ minAge }} to {{ maxAge }}.</span>
+            } @else if (fmSays('age'); as fm) {
+              <span class="fm-was">FM says age {{ fm }} · <button type="button" class="text-btn" (click)="useFm('age')">Use FM's</button></span>
+            } @else if (fmSays('nationality'); as fm) {
+              <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('nationality')">Use FM's</button></span>
+            } @else {
+              Age at the start of this season.
+            }
+          </small>
+
+          <div class="ef-field">
+            <label for="ef-status">Squad status
+              @if (fmSays('squadStatus')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+            </label>
+            <input id="ef-status" type="text" list="ef-statuses" autocomplete="off" maxlength="40"
+              [value]="squadStatus()" (input)="squadStatus.set(val($event))" placeholder="None" />
+            <datalist id="ef-statuses">
+              @for (s of statuses; track s) { <option [value]="s"></option> }
+            </datalist>
+            @if (fmSays('squadStatus'); as fm) {
+              <small><span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('squadStatus')">Use FM's</button></span></small>
+            }
+          </div>
+        </fieldset>
+
+        <fieldset class="ef-group">
+          <legend>Ability and contract</legend>
+
+          <div class="ef-row">
+            <div class="ef-field">
+              <label for="ef-ability">Ability
+                @if (fmSays('ability')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+              </label>
+              <select id="ef-ability" (change)="setAbility(val($event))">
+                @for (s of steps; track s) { <option [value]="s" [selected]="s === ability()">{{ stars(s) }}</option> }
+              </select>
+            </div>
+            <div class="ef-field">
+              <label for="ef-potential">Potential
+                @if (fmSays('potential')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+              </label>
+              <select id="ef-potential" (change)="setPotential(val($event))"
+                [attr.aria-invalid]="tried() && problems().has('potential')" aria-describedby="ef-stars-note">
+                @for (s of steps; track s) { <option [value]="s" [selected]="s === potential()">{{ stars(s) }}</option> }
+              </select>
+            </div>
+          </div>
+          <p class="ef-stars" id="ef-stars-note">
+            <app-stars [ability]="ability()" [potential]="potential()" [potentialMax]="potentialMax()" [size]="13" />
+            @if (tried() && problems().has('potential')) {
+              <span class="ef-error">Potential can't be below ability.</span>
+            } @else if (fmSays('ability'); as fm) {
+              <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('ability')">Use FM's</button></span>
+            } @else if (fmSays('potential'); as fm) {
+              <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('potential')">Use FM's</button></span>
+            }
+          </p>
+
+          <div class="ef-field">
+            <label for="ef-potmax">Potential up to</label>
+            <select id="ef-potmax" (change)="setPotentialMax(val($event))" aria-describedby="ef-potmax-note">
+              <option value="" [selected]="potentialMax() === null">Same as potential</option>
+              @for (s of potentialMaxSteps(); track s) { <option [value]="s" [selected]="s === potentialMax()">{{ stars(s) }}</option> }
+            </select>
+            <small id="ef-potmax-note">For when FM shows a range, like 2.0–3.0.</small>
+          </div>
+
+          <div class="ef-field">
+            <label for="ef-contract">Contract ends
+              @if (fmSays('contractExpires')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+            </label>
+            <input id="ef-contract" type="date" min="1900-01-01" max="2300-12-31" [value]="contract()"
+              (input)="contract.set(val($event))" aria-describedby="ef-contract-note" />
+            <small id="ef-contract-note">
+              @if (fmSays('contractExpires'); as fm) {
+                <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('contractExpires')">Use FM's</button></span>
+              } @else {
+                Leave empty if there's no date.
+              }
+            </small>
+          </div>
+        </fieldset>
+
+        <fieldset class="ef-group span">
+          <legend>Positions
+            @if (fmSays('positions')) { <ng-container *ngTemplateOutlet="editedTag" /> }
+          </legend>
+          <div class="pos-spots" [class.invalid]="tried() && problems().has('positions')" role="group"
+            aria-label="Positions on the pitch" aria-describedby="ef-pos-note">
+            @for (row of rows; track $index) {
+              @for (code of row; track $index) {
+                @if (code) {
+                  <button type="button" class="spot" [class.on]="positions()[code]" [class.nat]="positions()[code] === 4"
+                    [class.cur]="current() === code" [attr.aria-pressed]="!!positions()[code]"
+                    [attr.aria-label]="spotLabel(code)" (click)="toggleSpot(code)">
+                    <span>{{ label[code] }}</span>
+                    @if (positions()[code]; as level) { <app-familiarity [level]="level" /> }
+                  </button>
+                } @else {
+                  <span aria-hidden="true"></span>
+                }
+              }
+            }
+          </div>
+          @if (current(); as code) {
+            <div class="pos-level">
+              <strong>{{ label[code] }}</strong>
+              <div class="segmented" role="radiogroup" [attr.aria-label]="'How well they play ' + label[code]">
+                @for (l of levels; track l) {
+                  <label [class.on]="positions()[code] === l">
+                    <input type="radio" name="ef-level" [checked]="positions()[code] === l" (change)="setLevel(l)" />
+                    <span>{{ levelName[l] }}</span>
+                  </label>
+                }
+              </div>
+              <button type="button" class="text-btn" (click)="removeCurrent()">Remove</button>
+            </div>
+          }
+          <p class="pos-note" id="ef-pos-note">
+            @if (tried() && problems().has('positions')) {
+              <span class="ef-error">Pick at least one position.</span>
+            } @else if (fmSays('positions'); as fm) {
+              <span class="fm-was">FM says {{ fm }} · <button type="button" class="text-btn" (click)="useFm('positions')">Use FM's</button></span>
+            } @else {
+              Tap a position to add it, then set how well they play there.
+            }
+          </p>
+        </fieldset>
+      </div>
+
+      <footer class="editor-foot">
+        <button type="submit" class="btn primary">{{ base() ? 'Save changes' : 'Add to squad' }}</button>
+        <button type="button" class="btn" (click)="cancel()">Cancel</button>
+        @if (base()) {
+          <button type="button" class="text-btn danger" (click)="remove()">Remove player</button>
+        }
+      </footer>
+    </form>
+  }
+</dialog>
+
+<ng-template #editedTag><span class="edited"><app-icon name="pencil" [size]="11" />Edited</span></ng-template>

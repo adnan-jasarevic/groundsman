@@ -102,6 +102,120 @@ describe('planImport', () => {
   });
 });
 
+describe('planImport with hand edits', () => {
+  // Ashworth's contract was renewed by hand to 2031; FM had 2028.
+  const edited = {
+    ...ashworth,
+    contractExpires: '2031-06-30',
+    fm: { contractExpires: '2028-06-30' },
+  };
+  const withEdit: SaveFile = {
+    ...mine,
+    players: mine.players.map((p) => (p.id === ashworth.id ? edited : p)),
+  };
+  const ashRow = (over: Partial<ImportedPlayer> = {}) =>
+    row({
+      name: 'Tom Ashworth',
+      age: ashworth.age,
+      nationality: ashworth.nationality,
+      positions: ashworth.positions,
+      ability: { min: ashworth.ability, max: ashworth.ability },
+      potential: { min: ashworth.potential, max: ashworth.potential },
+      contractExpires: '2028-06-30',
+      ...over,
+    });
+
+  it('keeps an edit and lists it next to what FM says', () => {
+    const preview = planImport([ashRow()], withEdit);
+    const ash = preview.players.find((p) => p.id === ashworth.id)!;
+    expect(ash.contractExpires).toBe('2031-06-30');
+    expect(ash.fm).toEqual({ contractExpires: '2028-06-30' });
+    expect(preview.edits).toEqual([
+      expect.objectContaining({
+        key: `${ashworth.id}:contractExpires`,
+        name: 'Tom Ashworth',
+        label: 'Contract ends',
+        yours: '30 Jun 2031',
+        fm: '30 Jun 2028',
+        useFm: false,
+      }),
+    ]);
+    expect(preview.staying.find((s) => s.player.id === ashworth.id)!.changes).toEqual([]);
+  });
+
+  it("takes FM's value when picked, and the edit is gone", () => {
+    const useFm = new Set([`${ashworth.id}:contractExpires`]);
+    const preview = planImport([ashRow()], withEdit, [], { useFm, bringBack: new Set() });
+    const ash = preview.players.find((p) => p.id === ashworth.id)!;
+    expect(ash.contractExpires).toBe('2028-06-30');
+    expect(ash.fm).toBeUndefined();
+    expect(preview.edits[0].useFm).toBe(true);
+  });
+
+  it('drops an edit quietly once FM agrees with it', () => {
+    const preview = planImport([ashRow({ contractExpires: '2031-06-30' })], withEdit);
+    expect(preview.edits).toEqual([]);
+    expect(preview.players.find((p) => p.id === ashworth.id)!.fm).toBeUndefined();
+  });
+
+  it('keeps an edit when the export could not say', () => {
+    const unread = [
+      {
+        row: 1,
+        player: 'Tom Ashworth',
+        column: 'contractExpires' as const,
+        message: 'x',
+        skipped: false,
+      },
+    ];
+    const a = planImport([ashRow({ contractExpires: undefined })], withEdit, unread);
+    const b = planImport([ashRow({ contractExpires: undefined })], withEdit);
+    for (const preview of [a, b]) {
+      expect(preview.edits).toEqual([]);
+      const ash = preview.players.find((p) => p.id === ashworth.id)!;
+      expect(ash.contractExpires).toBe('2031-06-30');
+      expect(ash.fm).toEqual({ contractExpires: '2028-06-30' });
+    }
+  });
+
+  it('still finds a player renamed by hand', () => {
+    const renamed = { ...ashworth, name: 'Thomas Ashworth', fm: { name: 'Tom Ashworth' } };
+    const save = { ...mine, players: [renamed] };
+    const preview = planImport([ashRow({ contractExpires: ashworth.contractExpires })], save);
+    expect(preview.leaving).toEqual([]);
+    expect(preview.players[0]).toMatchObject({ id: ashworth.id, name: 'Thomas Ashworth' });
+  });
+
+  it('keeps players added by hand who are not in the export', () => {
+    const hart = { ...ashworth, id: 'm-1', name: 'Jamie Hart', added: true };
+    const preview = planImport([ashRow()], { ...mine, players: [ashworth, hart] });
+    expect(preview.addedKept).toEqual([hart]);
+    expect(preview.leaving).toEqual([]);
+    expect(preview.players).toContain(hart);
+  });
+
+  it('leaves out players removed by hand unless brought back', () => {
+    const save = { ...mine, players: [ashworth], removed: ['Somebody Gone'] };
+    const rows = [
+      ashRow({ contractExpires: ashworth.contractExpires }),
+      row({ name: 'Somebody Gone' }),
+    ];
+
+    const kept = planImport(rows, save);
+    expect(kept.arriving).toEqual([]);
+    expect(kept.removedSeen).toEqual([{ name: 'Somebody Gone', back: false }]);
+    expect(kept.removed).toEqual(['Somebody Gone']);
+
+    const back = planImport(rows, save, [], {
+      useFm: new Set(),
+      bringBack: new Set(['Somebody Gone']),
+    });
+    expect(back.arriving.map((p) => p.name)).toEqual(['Somebody Gone']);
+    expect(back.removedSeen).toEqual([{ name: 'Somebody Gone', back: true }]);
+    expect(back.removed).toEqual([]);
+  });
+});
+
 describe('buildSave', () => {
   it('names the save and keeps the shortlist on a re-import', () => {
     const preview = planImport([row()], mine);
@@ -127,6 +241,23 @@ describe('buildSave', () => {
     });
     expect(save.shortlist).toBe(mine.shortlist);
     expect(save.sample).toBeUndefined();
+    expect(save.removed).toBeUndefined();
+  });
+
+  it('remembers players removed by hand', () => {
+    const removed = { ...mine, removed: ['Somebody Gone'] };
+    const save = buildSave(
+      planImport([row()], removed),
+      {
+        name: 'x',
+        club: 'Harju Athletic',
+        seasonStyle: 'calendar',
+        currentSeason: 2048,
+        fileName: 'a.csv',
+      },
+      removed,
+    );
+    expect(save.removed).toEqual(['Somebody Gone']);
   });
 
   it('gives a new save its own id and falls back to the club for its name', () => {

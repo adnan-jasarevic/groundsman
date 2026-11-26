@@ -72,6 +72,36 @@ export interface Player {
   info?: string;
   /** True for shortlist targets who are not at the club yet. */
   target?: boolean;
+  /** Added by hand, not from an FM export. */
+  added?: boolean;
+  /**
+   * FM's values for the fields the user changed by hand, so a re-import can
+   * keep the edit and still show what FM says. Absent when nothing was edited.
+   */
+  fm?: FmValues;
+}
+
+/** Player fields that come from FM and can be changed by hand. */
+export type FmField =
+  | 'name'
+  | 'age'
+  | 'nationality'
+  | 'positions'
+  | 'ability'
+  | 'potential'
+  | 'contractExpires'
+  | 'squadStatus';
+
+/** FM's value per edited field. Null means FM had none (no contract date, no status). */
+export interface FmValues {
+  name?: string;
+  age?: number;
+  nationality?: string;
+  positions?: Partial<Record<PositionCode, Familiarity>>;
+  ability?: number;
+  potential?: { min: number; max?: number };
+  contractExpires?: string | null;
+  squadStatus?: string | null;
 }
 
 export interface FormationSlot {
@@ -107,6 +137,8 @@ export interface SaveFile {
   shortlist: Player[];
   /** Built-in sample squad, not the user's own. An import replaces it outright. */
   sample?: boolean;
+  /** FM names of players removed by hand. Re-imports leave them out until brought back. */
+  removed?: string[];
 }
 
 export interface DepthPlan {

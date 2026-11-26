@@ -135,7 +135,9 @@
       </section>
 
       <section class="panel grow">
-        <h2 class="panel-title">Bench <span class="count">{{ store.bench().length }}</span></h2>
+        <h2 class="panel-title">Bench <span class="count">{{ store.bench().length }}</span>
+          <button type="button" class="text-btn panel-add" (click)="store.edit('new')"><app-icon name="plus" [size]="14" />Add player</button>
+        </h2>
         <div class="list bench" cdkDropList [cdkDropListData]="BENCH" [cdkDropListEnterPredicate]="acceptSquadOnly"
           [cdkDropListSortingDisabled]="true" (cdkDropListDropped)="drop($event)">
           @for (p of store.bench(); track p.id) {
