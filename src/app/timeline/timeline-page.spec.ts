@@ -48,30 +48,47 @@ describe('Season timeline', () => {
     const { el } = await open();
     const cells = row(el, /^D \(C\) right$/).querySelectorAll('td');
 
-    const now = cells[0].querySelector('.tl-chip.starter')!;
-    expect(now.querySelector('.tl-nm')!.textContent).toBe('M. Hallström');
-    expect(now.getAttribute('data-state')).toBe('critical');
+    const now = cells[0].querySelector('.tl-line.first')!;
+    expect(now.querySelector('.tl-nm')!.textContent!.trim()).toBe('M. Hallström');
+    expect(now.querySelector('.tl-abl')!.textContent).toContain('3.0');
+    expect(now.querySelector('.tl-yr')!.getAttribute('data-state')).toBe('critical');
+    expect(now.querySelector('.tl-yr')!.textContent).toContain('2027');
     expect(now.querySelector('.tl-age.old')!.textContent).toContain('33');
 
-    expect(cells[1].querySelector('.tl-chip.starter .tl-nm')!.textContent).toBe('L. Brennan');
-    expect(cells[1].querySelector('.tl-chip.starter .tl-age')!.textContent).toContain('28');
-    expect(cells[1].textContent).toContain('M. Hallström left');
+    const next = cells[1].querySelector('.tl-line.first')!;
+    expect(next.querySelector('.tl-nm')!.textContent!.trim()).toBe('L. Brennan');
+    expect(next.querySelector('.tl-age')!.textContent).toContain('28');
+    expect(cells[1].querySelector('.tl-out')!.textContent).toBe('Out: M. Hallström, M. Rossi');
     expect(cells[2].textContent).not.toContain('Hallström');
   });
 
   it('marks positions that run out of cover', async () => {
     const { el } = await open();
     const cells = row(el, /^D \(C\) right$/).querySelectorAll('td');
-    expect([...cells].map((c) => c.classList.contains('worn'))).toEqual([false, true, true, true]);
-    expect(cells[1].querySelector('.tag')!.textContent).toBe('No cover');
-    expect(cells[3].querySelector('.tag')!.textContent).toBe('Empty');
+    expect([...cells].map((c) => c.getAttribute('data-thin'))).toEqual([
+      null,
+      'no-cover',
+      'no-cover',
+      'empty',
+    ]);
+    expect(cells[1].textContent).toContain('Only one player, no cover');
+    expect(cells[3].querySelector('.tl-none')!.textContent).toBe('No one under contract');
+  });
+
+  it('counts thin positions and final-year contracts per season', async () => {
+    const { el } = await open();
+    const counts = [...el.querySelectorAll('.tl-grid thead .tl-counts')].map((c) =>
+      c.textContent!.replace(/\s+/g, ' ').trim(),
+    );
+    expect(counts[0]).toBe('0 thin · 3 in final year');
+    expect(counts[1]).toMatch(/^1 thin · \d+ in final year$/);
   });
 
   it('lists squad players outside the plan', async () => {
     const { el } = await open();
     const unplaced = el.querySelector('.tl-unplaced td')!;
-    expect(unplaced.querySelectorAll('.tl-chip').length).toBeGreaterThan(0);
-    expect(unplaced.querySelector('.tl-chip.starter')).toBeNull();
+    expect(unplaced.querySelectorAll('.tl-line').length).toBeGreaterThan(0);
+    expect(unplaced.querySelector('.tl-line.first')).toBeNull();
   });
 
   it('opens a position on a phone to show the names', async () => {
@@ -88,6 +105,6 @@ describe('Season timeline', () => {
     await fixture.whenStable();
     expect(button.getAttribute('aria-expanded')).toBe('true');
     const detail = el.querySelector(`#${button.getAttribute('aria-controls')}`)!;
-    expect(detail.textContent).toContain('Nobody');
+    expect(detail.textContent).toContain('No one under contract');
   });
 });

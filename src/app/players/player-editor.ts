@@ -23,7 +23,7 @@ import {
 } from '../domain/models';
 import { PlanStore } from '../state/plan-store';
 import { Icon } from '../ui/icon';
-import { Stars } from '../ui/stars';
+import { AbilityBar } from '../ui/figures';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { NgTemplateOutlet } from '@angular/common';
 
@@ -66,7 +66,7 @@ type Problem = 'name' | 'age' | 'positions' | 'potential';
 @Component({
   selector: 'app-player-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Stars, FamiliarityMeter, NgTemplateOutlet],
+  imports: [Icon, AbilityBar, FamiliarityMeter, NgTemplateOutlet],
   templateUrl: './player-editor.html',
 })
 export class PlayerEditor {

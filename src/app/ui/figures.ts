@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { Player } from '../domain/models';
+import { formatStars, Player } from '../domain/models';
 
 /** FM's star value as a figure: 3 → "3.0", 3.5 → "3.5". */
 export function rating(value: number): string {
@@ -8,9 +8,7 @@ export function rating(value: number): string {
 
 /** Potential as a figure, or a range when FM gives one ("3.5–4.0"). */
 export function potentialText(p: Pick<Player, 'potential' | 'potentialMax'>): string {
-  return p.potentialMax != null && p.potentialMax > p.potential
-    ? `${rating(p.potential)}–${rating(p.potentialMax)}`
-    : rating(p.potential);
+  return formatStars(p.potential, p.potentialMax ?? undefined);
 }
 
 /** Ability over potential on a five-star track. The figures beside it carry the meaning. */

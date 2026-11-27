@@ -2,10 +2,10 @@ import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cd
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FORMATIONS } from '../domain/formations';
 import { FormationSlot, Player, POSITION_LABEL, PositionCode } from '../domain/models';
-import { Flag, shortName } from '../domain/projection';
+import { ageAt, contractState, Flag, shortName } from '../domain/projection';
 import { MAX_TIERS, MIN_TIERS, PlanStore, tierName } from '../state/plan-store';
 import { Icon, IconName } from '../ui/icon';
-import { Stars } from '../ui/stars';
+import { potentialText, rating } from '../ui/figures';
 import { PlayerChip } from './player-chip';
 import { PlayerDetail } from './player-detail';
 
@@ -15,7 +15,7 @@ const SHORTLIST = 'shortlist';
 @Component({
   selector: 'app-depth-chart',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag, PlayerChip, PlayerDetail, Stars, Icon],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, PlayerChip, PlayerDetail, Icon],
   templateUrl: './depth-chart.html',
   host: { class: 'page' },
 })
@@ -27,6 +27,8 @@ export class DepthChart {
   protected readonly SHORTLIST = SHORTLIST;
   protected readonly label = POSITION_LABEL;
   protected readonly short = shortName;
+  protected readonly rating = rating;
+  protected readonly potentialText = potentialText;
 
   /** Bumped on every season change so the mow sweep replays; 0 means never run. */
   protected readonly mowKey = signal(0);
@@ -36,8 +38,35 @@ export class DepthChart {
     [...this.store.formation().slots].sort((a, b) => a.y - b.y || a.x - b.x),
   );
 
-  /** Each formation row gets ~18.5% of the pitch; keep the deepest stack inside it. */
-  protected readonly pitchMin = computed(() => Math.round((22 + this.store.tiers() * 32 + 8) / 0.185));
+  /** Each formation row gets ~18.5% of the pitch; keep the deepest card inside it. */
+  protected readonly pitchMin = computed(() => Math.round((34 + this.store.tiers() * 28 + 10) / 0.185));
+
+  /** Players under contract in each position, for every planned season. */
+  protected readonly cover = computed(() => {
+    const style = this.store.seasonStyle();
+    return this.orderedSlots().map((slot) => {
+      const players = this.players(slot);
+      return {
+        id: slot.id,
+        label: POSITION_LABEL[slot.position],
+        twin: this.twin(slot),
+        counts: this.store
+          .seasons()
+          .map((season) => players.filter((p) => contractState(p, season, style) !== 'left').length),
+      };
+    });
+  });
+
+  /** "3 deep · 2 in 28/29": cover now and two seasons on (or the last planned season). */
+  protected readonly depth = computed(() => {
+    const seasons = this.store.seasons();
+    const now = seasons.indexOf(this.store.season());
+    const later = Math.min(now + 2, seasons.length - 1);
+    const laterText = this.shortSeason(seasons[later]);
+    return new Map(
+      this.cover().map((row) => [row.id, { now: row.counts[now], later: row.counts[later], laterText }]),
+    );
+  });
 
   protected readonly placedTargets = computed(
     () => new Set(this.store.shortlist().filter((t) => this.store.placedIds().has(t.id)).map((t) => t.id)),
@@ -72,16 +101,26 @@ export class DepthChart {
     return this.store.slotLabel(slot.id).slice(POSITION_LABEL[slot.position].length).trim();
   }
 
+  /** Accomplished or better; otherwise the one position they play best. */
   protected bestPositions(p: Player): string {
-    return (Object.entries(p.positions) as [PositionCode, number][])
-      .filter(([, f]) => f >= 3)
-      .sort((a, b) => b[1] - a[1])
-      .map(([c]) => POSITION_LABEL[c])
-      .join(', ');
+    const ranked = (Object.entries(p.positions) as [PositionCode, number][]).sort((a, b) => b[1] - a[1]);
+    const good = ranked.filter(([, f]) => f >= 3);
+    return (good.length ? good : ranked.slice(0, 1)).map(([c]) => POSITION_LABEL[c]).join(', ');
   }
 
   protected contractYear(p: Player): string {
-    return p.contractExpires ? `'${p.contractExpires.slice(2, 4)}` : '';
+    if (!p.contractExpires) return '';
+    return this.store.contractOf(p) === 'left' ? 'Left' : p.contractExpires.slice(0, 4);
+  }
+
+  protected ageOf(p: Player): number {
+    return ageAt(p, this.store.baseSeason(), this.store.season());
+  }
+
+  /** Short season names for the cover table: "26/27" or "2048". */
+  protected shortSeason(season: number): string {
+    const text = this.store.seasonText(season);
+    return text.length > 4 ? text.slice(2) : text;
   }
 
   protected contractStateOf(p: Player): string {

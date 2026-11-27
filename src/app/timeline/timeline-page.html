@@ -8,34 +8,47 @@
     <ul class="tl-legend" aria-label="Key">
       <li><i data-state="warning"></i>2 years left</li>
       <li><i data-state="critical"></i>Last season</li>
-      <li><i class="old"></i>33 or older</li>
-      <li><i class="worn"></i>No cover</li>
+      <li><b class="old">34</b>33 or older</li>
+      <li><i class="worn"></i>One or none</li>
     </ul>
   </header>
 
-  <ng-template #chip let-e let-starter="starter">
-    <span
-      class="tl-chip"
-      [class.starter]="starter"
-      [class.target]="e.player.target"
-      [attr.data-state]="e.contract"
-    >
-      @if (e.player.target) {
-        <app-icon name="target" [size]="13" />
-      }
-      <span class="tl-nm">{{ e.name }}</span>
+  <!-- One player in one season: tier, name, age, ability and contract in fixed columns. -->
+  <ng-template #line let-e let-tier="tier">
+    <span class="tl-line" [class.first]="tier === 1">
+      <span class="tl-t">{{ tier || '' }}</span>
+      <span class="tl-nm">
+        @if (e.player.target) {
+          <app-icon name="target" [size]="12" />
+        }
+        {{ e.name }}
+      </span>
       <span class="tl-age" [class.old]="e.ageing"
         ><span class="sr-only">age </span>{{ e.age }}</span
       >
-      @if (contractNote(e.contract); as t) {
-        <span class="sr-only">, {{ t }}</span>
-      }
+      <span class="tl-abl"><span class="sr-only">ability </span>{{ e.ability }}</span>
+      <span class="tl-yr" [attr.data-state]="e.contract"
+        >{{ e.year }}
+        @if (contractNote(e.contract); as t) {
+          <span class="sr-only">, {{ t }}</span>
+        }
+      </span>
     </span>
   </ng-template>
 
-  <ng-template #gone let-names>
-    @for (n of names; track n) {
-      <span class="tl-gone">{{ n }} left</span>
+  <ng-template #cellBody let-cell let-numbered="numbered">
+    @for (e of cell.players; track e.player.id; let k = $index) {
+      <ng-container
+        *ngTemplateOutlet="line; context: { $implicit: e, tier: numbered ? k + 1 : 0 }"
+      />
+    } @empty {
+      <span class="tl-none">{{ numbered ? 'No one under contract' : 'Nobody' }}</span>
+    }
+    @if (numbered && cell.thin === 'no-cover') {
+      <span class="sr-only">Only one player, no cover</span>
+    }
+    @if (cell.gone.length) {
+      <span class="tl-out">Out: {{ cell.gone.join(', ') }}</span>
     }
   </ng-template>
 
@@ -60,16 +73,9 @@
                   <span class="now">Now</span>
                 }
               </span>
-              <span class="flag-strip-counts">
-                @if (s.critical) {
-                  <span class="crit">{{ s.critical }} critical</span>
-                }
-                @if (s.warning) {
-                  <span class="warn">{{ s.warning }} to watch</span>
-                }
-                @if (!s.critical && !s.warning) {
-                  <span class="ok">All clear</span>
-                }
+              <span class="tl-counts">
+                <span class="thin">{{ s.thin }} thin</span> ·
+                <span class="final">{{ s.final }} in final year</span>
               </span>
             </th>
           }
@@ -85,19 +91,11 @@
               }
             </th>
             @for (cell of row.cells; track cell.season) {
-              <td [class.worn]="cell.thin">
+              <td [attr.data-thin]="cell.thin">
                 <div class="tl-cell">
-                  @for (e of cell.players; track e.player.id; let k = $index) {
-                    <ng-container
-                      *ngTemplateOutlet="chip; context: { $implicit: e, starter: k === 0 }"
-                    />
-                  }
-                  <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
-                  @if (cell.thin) {
-                    <span class="tag earth">{{
-                      cell.thin === 'empty' ? 'Empty' : 'No cover'
-                    }}</span>
-                  }
+                  <ng-container
+                    *ngTemplateOutlet="cellBody; context: { $implicit: cell, numbered: true }"
+                  />
                 </div>
               </td>
             }
@@ -111,12 +109,9 @@
             @for (cell of unplaced(); track cell.season) {
               <td>
                 <div class="tl-cell">
-                  @for (e of cell.players; track e.player.id) {
-                    <ng-container
-                      *ngTemplateOutlet="chip; context: { $implicit: e, starter: false }"
-                    />
-                  }
-                  <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
+                  <ng-container
+                    *ngTemplateOutlet="cellBody; context: { $implicit: cell, numbered: false }"
+                  />
                 </div>
               </td>
             }
@@ -209,14 +204,9 @@
         @for (cell of cells; track cell.season; let i = $index) {
           <div>
             <b>{{ seasons()[i].label }}</b>
-            @for (e of cell.players; track e.player.id; let k = $index) {
-              <ng-container
-                *ngTemplateOutlet="chip; context: { $implicit: e, starter: thin && k === 0 }"
-              />
-            } @empty {
-              <span class="tl-none">Nobody</span>
-            }
-            <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
+            <ng-container
+              *ngTemplateOutlet="cellBody; context: { $implicit: cell, numbered: thin }"
+            />
           </div>
         }
       </div>
