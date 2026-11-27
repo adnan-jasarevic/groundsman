@@ -7,11 +7,11 @@ import {
   ContractState,
   contractState,
   isAgeing,
-  seasonFlags,
   seasonsLeft,
   shortName,
 } from '../domain/projection';
 import { PlanStore } from '../state/plan-store';
+import { rating } from '../ui/figures';
 import { Icon } from '../ui/icon';
 
 /** One player as they stand in one season. */
@@ -20,6 +20,9 @@ interface Entry {
   name: string;
   age: number;
   ageing: boolean;
+  ability: string;
+  /** Year the contract runs out, as FM records it. */
+  year: string;
   contract: ContractState;
 }
 
@@ -59,25 +62,19 @@ export class TimelinePage {
   protected readonly open = signal<string | null>(null);
 
   protected readonly seasons = computed(() =>
-    this.store.seasons().map((season, i) => {
-      const flags = seasonFlags(
-        this.store.formation(),
-        this.store.plan(),
-        this.store.byId(),
-        this.store.baseSeason(),
-        season,
-        this.store.seasonStyle(),
-      );
-      const critical = flags.filter((f) => f.severity === 'critical').length;
-      return {
-        season,
-        label: this.store.seasonText(season),
-        short: this.store.seasonText(season).slice(2),
-        now: i === 0,
-        critical,
-        warning: flags.length - critical,
-      };
-    }),
+    this.store.seasons().map((season, i) => ({
+      season,
+      label: this.store.seasonText(season),
+      short: this.store.seasonText(season).slice(2),
+      now: i === 0,
+      /** Positions with one player or none. */
+      thin: this.rows().filter((r) => r.cells[i].thin).length,
+      /** Squad players in the last season of their contract. */
+      final: this.store
+        .save()
+        .players.filter((p) => contractState(p, season, this.store.seasonStyle()) === 'critical')
+        .length,
+    })),
   );
 
   /** Formation positions in reading order (attack to goal, left to right), like the depth chart. */
@@ -127,6 +124,8 @@ export class TimelinePage {
             name: shortName(p),
             age,
             ageing: !p.target && isAgeing(age),
+            ability: rating(p.ability),
+            year: p.contractExpires?.slice(0, 4) ?? '–',
             contract: contractState(p, season, style),
           };
         }),

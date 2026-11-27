@@ -3652,9 +3652,9 @@ dialog.editor::backdrop {
   background: var(--red);
 }
 
-.tl-legend i.old {
-  border-radius: 0;
-  box-shadow: inset 0 -2px 0 var(--amber);
+.tl-legend .old {
+  font: 600 14px var(--cond);
+  color: var(--amber-text);
 }
 
 .tl-legend i.worn {
@@ -3670,72 +3670,88 @@ dialog.editor::backdrop {
   color: var(--chalk-3);
 }
 
-.flag-strip-counts .ok {
-  background: var(--raise);
+/* A player in one season: tier, name, age, ability and contract in fixed columns. */
+.tl-line {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 24px 28px 44px;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  font: 500 15px/1.2 var(--cond);
+  color: var(--chalk-2);
+}
+
+.tl-line.first {
+  font-weight: 600;
+  color: var(--chalk);
+}
+
+.tl-t {
+  font-size: 12.5px;
   color: var(--chalk-3);
 }
 
-/* A player in one season: name and age, contract colour on the left edge. */
-.tl-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 7px 0 8px;
-  border-radius: 5px;
-  background: var(--raise);
-  box-shadow: inset 3px 0 0 var(--line);
-  font-size: 13px;
-  font-weight: 500;
+.tl-nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tl-chip.starter {
-  background: var(--chalk);
-  color: var(--ink);
-  box-shadow: inset 3px 0 0 #b9b5a6;
+.tl-nm .icon {
+  margin-right: 3px;
+  color: var(--amber);
+  vertical-align: -1px;
+}
+
+.tl-age,
+.tl-abl,
+.tl-yr {
+  text-align: right;
   font-weight: 600;
 }
 
-.tl-chip[data-state='warning'] {
-  box-shadow: inset 3px 0 0 var(--amber);
-}
-
-.tl-chip[data-state='critical'] {
-  box-shadow: inset 3px 0 0 var(--red);
-}
-
-.tl-chip.target .icon {
-  color: var(--amber);
-}
-
 .tl-age {
-  font: 600 13px var(--cond);
   color: var(--chalk-3);
-}
-
-.tl-chip.starter .tl-age {
-  color: #5d6a61;
 }
 
 .tl-age.old {
   color: var(--amber-text);
-  text-decoration: underline 2px var(--amber);
-  text-underline-offset: 3px;
 }
 
-.tl-chip.starter .tl-age.old {
-  color: #7a5410;
+.tl-abl {
+  color: var(--chalk);
 }
 
-.tl-gone {
-  font-size: 12px;
+.tl-yr {
+  justify-self: end;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--chalk-2);
+}
+
+.tl-yr[data-state='warning'] {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.tl-yr[data-state='critical'] {
+  background: var(--red-fill);
+  color: #fff;
+}
+
+.tl-out {
+  margin-top: 2px;
+  font-size: 12.5px;
   color: var(--chalk-3);
-  text-decoration: line-through rgba(201, 198, 186, 0.5);
 }
 
 .tl-none {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--earth-text);
 }
 
@@ -3773,8 +3789,19 @@ dialog.editor::backdrop {
   display: flex;
 }
 
-.tl-grid thead .flag-strip-counts {
-  margin: 6px 0 0;
+.tl-counts {
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--chalk-3);
+}
+
+.tl-counts .thin {
+  color: var(--earth-text);
+}
+
+.tl-counts .final {
+  color: var(--red-text);
 }
 
 .tl-grid thead .tl-pos {
@@ -3802,30 +3829,29 @@ dialog.editor::backdrop {
 
 .tl-grid tbody .tl-pos {
   padding: 10px 0;
+  vertical-align: top;
   font: 600 16px/1.1 var(--cond);
   letter-spacing: 0.02em;
 }
 
 .tl-grid td {
+  vertical-align: top;
   border-left: 1px solid var(--line);
 }
 
-.tl-grid td.worn {
-  background: rgba(180, 140, 90, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(180, 140, 90, 0.35);
+/* One player left, then none: worn earth, deeper when empty. */
+.tl-grid td[data-thin='no-cover'] {
+  background: rgba(180, 140, 90, 0.13);
+}
+
+.tl-grid td[data-thin='empty'] {
+  background: rgba(180, 140, 90, 0.26);
 }
 
 .tl-cell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 5px;
-  min-height: 54px;
-  padding: 8px 10px;
-}
-
-.tl-cell .tag {
-  margin-left: auto;
+  display: grid;
+  gap: 1px;
+  padding: 8px 12px 9px;
 }
 
 .tl-unplaced .tl-pos {
@@ -3932,14 +3958,13 @@ dialog.editor::backdrop {
 }
 
 .tl-ph-detail > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+  display: grid;
+  gap: 1px;
+  padding: 0 4px;
 }
 
 .tl-ph-detail b {
-  width: 62px;
+  margin-bottom: 2px;
   font: 600 13px var(--cond);
   color: var(--chalk-2);
 }
