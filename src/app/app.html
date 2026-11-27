@@ -9,6 +9,7 @@
       @if (store.hasSave()) {
         <li><a routerLink="/depth-chart" routerLinkActive="on" ariaCurrentWhenActive="page">Depth chart</a></li>
         <li><a routerLink="/squad" routerLinkActive="on" ariaCurrentWhenActive="page">Squad</a></li>
+        <li><a routerLink="/season-timeline" routerLinkActive="on" ariaCurrentWhenActive="page">Season timeline</a></li>
       }
       @for (item of upcoming; track item) {
         <li><span class="nav-soon" aria-disabled="true">{{ item }}<small>Soon</small></span></li>

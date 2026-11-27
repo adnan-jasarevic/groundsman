@@ -16,7 +16,7 @@ import { Icon } from './ui/icon';
 export class App {
   protected readonly store = inject(PlanStore);
   protected readonly library = inject(SaveLibrary);
-  protected readonly upcoming = ['Season timeline', 'Shortlist'];
+  protected readonly upcoming = ['Shortlist'];
 
   protected backupText(): string {
     return lastBackupText(this.library.lastBackup());
