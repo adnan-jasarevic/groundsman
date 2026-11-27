@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  formatStars,
   Player,
   POSITION_LABEL,
   PositionCode,
@@ -11,7 +12,6 @@ import { PlanStore, tierName } from '../state/plan-store';
 import { SaveLibrary } from '../state/save-library';
 import { suggestName } from '../state/save-storage';
 import { Icon } from '../ui/icon';
-import { Stars } from '../ui/stars';
 import {
   buildSave,
   guessCurrentSeason,
@@ -33,7 +33,7 @@ interface Loaded {
 @Component({
   selector: 'app-import-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Stars, RouterLink],
+  imports: [Icon, RouterLink],
   templateUrl: './import-page.html',
   host: { class: 'page' },
 })
@@ -283,7 +283,12 @@ export class ImportPage {
   }
 
   protected year(p: Player): string {
-    return p.contractExpires ? `'${p.contractExpires.slice(2, 4)}` : '';
+    return p.contractExpires ? p.contractExpires.slice(0, 4) : '';
+  }
+
+  /** Ability and potential as FM's figures: "3.0 → 4.0". */
+  protected figures(p: Player): string {
+    return `${formatStars(p.ability)} → ${formatStars(p.potential, p.potentialMax)}`;
   }
 
   /** Where a leaver sits in the current plan, e.g. "D (L) starter · WB (L) backup". */

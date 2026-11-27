@@ -1,13 +1,3 @@
-<svg class="defs" aria-hidden="true" width="0" height="0">
-  <filter id="worn-earth" x="-20%" y="-20%" width="140%" height="140%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="7" result="shape" />
-    <feDisplacementMap in="SourceGraphic" in2="shape" scale="46" xChannelSelector="R" yChannelSelector="G" result="patch" />
-    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="grain" />
-    <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0 0.1  0 0 0 -1.6 1.1" result="specks" />
-    <feComposite in="specks" in2="patch" operator="in" result="grit" />
-    <feMerge><feMergeNode in="patch" /><feMergeNode in="grit" /></feMerge>
-  </filter>
-</svg>
 <div class="board" cdkDropListGroup>
   <header class="topbar">
     <h1>Depth chart</h1>
@@ -75,19 +65,15 @@
           @for (k of [mowKey()]; track k) { <div class="mow" aria-hidden="true"></div> }
         }
 
-        <div class="wear-layer" aria-hidden="true">
-          @for (slot of orderedSlots(); track slot.id) {
-            <div class="wear" [class.on]="store.wornSlots().has(slot.id)" [style.--x]="slot.x" [style.--y]="slot.y"></div>
-          }
-        </div>
-
         @for (slot of orderedSlots(); track slot.id) {
           <section class="slot" [style.--x]="slot.x" [style.--y]="slot.y" [attr.data-line]="slot.line"
             [class.worn]="store.wornSlots().has(slot.id)" [attr.aria-label]="store.slotLabel(slot.id)">
             <h2 class="slot-head">
-              <span>{{ label[slot.position] }}@if (twin(slot); as t) { <span class="twin">{{ t }}</span> }</span>
+              <span>{{ label[slot.position] }}@if (twin(slot); as t) { <span class="twin"> {{ t }}</span> }</span>
               @if (store.wornSlots().get(slot.id); as worn) {
                 <span class="tag earth">{{ worn === 'empty' ? 'Empty' : 'No cover' }}</span>
+              } @else if (depth().get(slot.id); as d) {
+                <span class="depth" [class.thin]="d.later <= 1">{{ d.now }} deep · {{ d.later }} in {{ d.laterText }}</span>
               }
             </h2>
             <div class="tiers" cdkDropList [cdkDropListData]="slot.id" (cdkDropListDropped)="drop($event)">
@@ -98,9 +84,10 @@
                 </div>
               }
               @for (e of empties(slot); track e) {
-                <div class="empty" [class.quiet]="!(e <= 1 && store.wornSlots().has(slot.id))"
-                  [attr.data-tier]="e === 0 ? 'starter' : e === 1 ? 'backup' : 'depth'">
-                  <span>Drop a {{ tierName(e) }}</span>
+                <div class="empty" [class.gap]="e <= 1" [attr.data-tier]="e === 0 ? 'starter' : e === 1 ? 'backup' : 'depth'">
+                  <span class="t">{{ e + 1 }}</span>
+                  <span class="open">{{ e === 0 ? 'No starter' : e === 1 ? 'No backup' : 'Open' }}</span>
+                  <span class="drop-hint">Drop a {{ tierName(e) }}</span>
                 </div>
               }
             </div>
@@ -119,6 +106,32 @@
       @if (store.selected()) {
         <app-player-detail />
       } @else {
+        <section class="panel">
+          <h2 class="panel-title">Cover by season</h2>
+          <table class="cover">
+            <caption class="sr-only">Players under contract in each position, per season</caption>
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Position</span></th>
+                @for (s of store.seasons(); track s) {
+                  <th scope="col" [class.on]="store.season() === s">{{ shortSeason(s) }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of cover(); track row.id) {
+                <tr>
+                  <th scope="row">{{ row.label }}@if (row.twin) { <small> {{ row.twin }}</small> }</th>
+                  @for (n of row.counts; track $index) {
+                    <td [attr.data-n]="n > 1 ? null : n"><span>{{ n }}</span></td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p class="hint">Players under contract. Earth marks one or none.</p>
+        </section>
+
         <section class="panel">
           <h2 class="panel-title">{{ store.seasonText(store.season()) }} flags</h2>
           @if (store.flags().length) {
@@ -147,7 +160,7 @@
               <button type="button" class="row-btn" (click)="store.selectedId.set(t.id)" [class.placed]="placedTargets().has(t.id)">
                 <app-icon name="target" />
                 <span class="row-name">{{ short(t) }}<small>{{ bestPositions(t) }} · {{ t.age }}</small></span>
-                <app-stars [ability]="t.ability" [potential]="t.potential" [potentialMax]="t.potentialMax" />
+                <span class="row-fig">{{ rating(t.ability) }}<small> → {{ potentialText(t) }}</small></span>
                 @if (placedTargets().has(t.id)) { <span class="tag amber">On plan</span> }
               </button>
             </div>
@@ -165,8 +178,8 @@
             <div class="bench-row" cdkDrag [cdkDragData]="p.id" (cdkDragStarted)="store.dragging.set(true)"
               (cdkDragEnded)="store.dragging.set(false)">
               <button type="button" class="row-btn" (click)="store.selectedId.set(p.id)" [class.left]="contractStateOf(p) === 'left'">
-                <span class="row-name">{{ short(p) }}<small>{{ bestPositions(p) }}</small></span>
-                <app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" />
+                <span class="row-name">{{ short(p) }}<small>{{ bestPositions(p) }} · {{ ageOf(p) }}</small></span>
+                <span class="row-fig">{{ rating(p.ability) }}</span>
                 <span class="contract" [attr.data-state]="contractStateOf(p)">{{ contractYear(p) }}</span>
               </button>
             </div>

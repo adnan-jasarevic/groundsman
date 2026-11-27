@@ -11,12 +11,12 @@ import { ageAt, isAgeing, seasonsLeft } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { FamiliarityMeter } from '../ui/familiarity';
 import { Icon } from '../ui/icon';
-import { Stars } from '../ui/stars';
+import { AbilityBar } from '../ui/figures';
 
 @Component({
   selector: 'app-player-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Stars, FamiliarityMeter, Icon],
+  imports: [AbilityBar, FamiliarityMeter, Icon],
   template: `
     @if (store.selected(); as p) {
       <section class="detail" aria-labelledby="detail-name">
@@ -42,8 +42,8 @@ import { Stars } from '../ui/stars';
           </div>
           <div>
             <dt>Ability · potential</dt>
-            <dd><app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" [size]="13" />
-              <span class="num muted">{{ stars(p.ability) }} · {{ stars(p.potential, p.potentialMax) }}</span></dd>
+            <dd class="figs"><span class="num">{{ stars(p.ability) }}</span><span class="num muted"> → {{ stars(p.potential, p.potentialMax) }}</span>
+              <app-ability-bar [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" /></dd>
           </div>
           <div class="wide">
             <dt>Contract</dt>

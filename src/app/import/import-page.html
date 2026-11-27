@@ -142,7 +142,7 @@
           @for (p of pv.arriving; track p.id) {
             <li class="board-row">
               <span class="who"><strong>{{ p.name }}</strong><small>{{ positions(p) }} · {{ p.age }}</small></span>
-              <app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" />
+              <span class="figs">{{ figures(p) }}</span>
               <span class="yr">{{ year(p) }}</span>
             </li>
           } @empty {
@@ -172,8 +172,7 @@
                     <small>No changes</small>
                   }
                 </span>
-                <app-stars [ability]="s.player.ability" [potential]="s.player.potential"
-                  [potentialMax]="s.player.potentialMax" />
+                <span class="figs">{{ figures(s.player) }}</span>
                 <span class="yr">{{ year(s.player) }}</span>
               </li>
             } @empty {

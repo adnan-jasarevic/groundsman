@@ -7,6 +7,9 @@
   --line: #2a3b30;
   --turf-a: #2f6b3a;
   --turf-b: #3c8046;
+  /* Mown stripes under data: quiet enough that chalk text reads at 8:1. */
+  --pitch-a: #24452d;
+  --pitch-b: #294d32;
   --chalk: #efece2;
   --chalk-2: #c9c6ba;
   --chalk-3: #9aa89e;
@@ -33,8 +36,6 @@
   --red-strong-text: #f08a74;
   --amber-text: #f1dcb2;
 
-  /* Filled stars on a chalk starter chip. */
-  --star-on-chalk: #6b4f10;
 
   --ui: 'Barlow', system-ui, sans-serif;
   --cond: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
@@ -296,7 +297,7 @@ input {
   width: 34px;
   height: 34px;
   border-radius: 7px;
-  background: repeating-linear-gradient(90deg, var(--turf-a) 0 6px, var(--turf-b) 6px 12px);
+  background: repeating-linear-gradient(90deg, var(--pitch-a) 0 6px, var(--pitch-b) 6px 12px);
   font: 700 14px var(--cond);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.04em;
@@ -612,12 +613,12 @@ input {
   min-width: 82px;
   padding: 6px 14px 5px;
   cursor: pointer;
-  background: var(--turf-a);
+  background: var(--pitch-a);
   transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
 }
 
 .scrubber label:nth-child(odd) {
-  background: var(--turf-b);
+  background: var(--pitch-b);
 }
 
 .scrubber label:hover {
@@ -657,7 +658,7 @@ input {
 
 .work {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   min-height: 0;
 }
 
@@ -665,19 +666,19 @@ input {
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 4px;
-  padding: 16px 24px 8px;
+  padding: 16px 16px 8px 20px;
   min-width: 0;
 }
 
 /* ---------- Pitch ---------- */
 
 .pitch {
-  --chalk-line: rgba(239, 236, 226, 0.82);
+  --chalk-line: rgba(239, 236, 226, 0.28);
   position: relative;
   min-height: var(--pitch-min, 680px);
   height: calc(100vh - 116px);
   border-radius: 6px;
-  background: repeating-linear-gradient(180deg, var(--turf-a) 0 10%, var(--turf-b) 10% 20%);
+  background: repeating-linear-gradient(180deg, var(--pitch-a) 0 10%, var(--pitch-b) 10% 20%);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px -18px rgba(0, 0, 0, 0.7);
   isolation: isolate;
 }
@@ -685,14 +686,14 @@ input {
 .markings {
   position: absolute;
   inset: 14px;
-  border: 3px solid var(--chalk-line);
+  border: 2px solid var(--chalk-line);
   pointer-events: none;
   z-index: 0;
 }
 
 .markings i {
   position: absolute;
-  border: 3px solid var(--chalk-line);
+  border: 2px solid var(--chalk-line);
 }
 
 .markings .half {
@@ -766,7 +767,7 @@ input {
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: repeating-linear-gradient(180deg, var(--turf-b) 0 10%, var(--turf-a) 10% 20%);
+  background: repeating-linear-gradient(180deg, var(--pitch-b) 0 10%, var(--pitch-a) 10% 20%);
   animation: mow 0.75s var(--ease-out) both;
 }
 
@@ -785,241 +786,303 @@ input {
   }
 }
 
-/* ---------- Slots ---------- */
+/* ---------- Position cards ---------- */
 
+/* A position is a small table on the pitch: header, then one row per tier. */
 .slot {
-  /* Four slots must fit side by side inside the touchlines (inset 17px each side). */
-  --w: min(200px, calc((100% - 40px) / 4 - 8px));
+  /* Four cards must fit side by side inside the touchlines. */
+  --w: min(232px, calc((100% - 40px) / 4 - 6px));
   position: absolute;
   z-index: 1;
   left: calc(20px + var(--x) * (100% - 40px) / 100);
   top: calc(var(--y) * 1%);
   width: var(--w);
   translate: -50% 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(23 36 28 / 94%);
 }
 
-/* All worn patches share one layer under every slot, so no patch paints over a neighbour. */
-.wear-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.wear {
-  --w: min(200px, calc((100% - 40px) / 4 - 8px));
-  position: absolute;
-  left: calc(20px + var(--x) * (100% - 40px) / 100);
-  top: calc(var(--y) * 1% + 60px);
-  width: calc(var(--w) * 1.45);
-  height: 170px;
-  translate: -50% -50%;
-  border-radius: 46% 54% 50% 50% / 52% 44% 56% 48%;
-  opacity: 0;
-  background: radial-gradient(closest-side, var(--earth) 0 58%, var(--earth-mid) 74%, rgba(138, 106, 66, 0.55) 88%, transparent);
-  filter: url(#worn-earth);
-  transition: opacity 0.6s var(--ease-out);
-}
-
-.wear.on {
-  opacity: 1;
+/* No cover now: the card wears to earth. */
+.slot.worn {
+  border-color: rgb(180 140 90 / 75%);
 }
 
 .slot-head {
   display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-  align-items: center;
-  min-height: 18px;
-  margin-bottom: 4px;
-  font: 700 14px/1 var(--cond);
-  letter-spacing: 0.08em;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 9px 5px;
+  border-bottom: 1px solid var(--raise);
+  font: 700 16px/1 var(--cond);
+  letter-spacing: 0.03em;
   color: var(--chalk);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .slot-head .twin {
-  display: none;
-  margin-left: 6px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
-  color: var(--chalk-2);
+  font: 500 12px var(--ui);
+  letter-spacing: 0;
+  color: var(--chalk-3);
 }
 
+.slot-head .depth,
 .slot-head .tag {
-  text-shadow: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.slot-head .depth {
+  font: 400 12px var(--ui);
+  letter-spacing: 0;
+  color: var(--chalk-3);
+}
+
+.slot-head .depth.thin {
+  color: var(--earth-text);
 }
 
 .tiers {
   display: grid;
-  gap: 4px;
-  min-height: 28px;
+  min-height: 27px;
 }
 
-.tier {
-  border-radius: 5px;
+.tier + .tier,
+.tier + .empty,
+.empty + .empty {
+  border-top: 1px solid var(--raise);
 }
 
+/* One tier: tier, name, age, ability, potential and contract in fixed columns. */
+.chip,
 .empty {
-  display: flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 9px;
-  border: 1.5px dashed rgba(239, 236, 226, 0.55);
-  border-radius: 5px;
-  font-size: 12px;
-  color: var(--chalk);
-  background: rgba(27, 58, 35, 0.9);
-}
-
-.empty.quiet {
-  min-height: 0;
-  height: 6px;
-  margin: 0 30%;
-  padding: 0;
-  border-width: 0 0 2px;
-  border-radius: 0;
-  border-color: rgba(239, 236, 226, 0.45);
-  background: none;
-  overflow: hidden;
-  transition: height 0.2s var(--ease-out), margin 0.2s var(--ease-out);
-}
-
-.empty.quiet span {
-  opacity: 0;
-}
-
-.pitch.dragging .empty.quiet {
-  height: 28px;
-  margin: 0;
-  padding: 0 9px;
-  border-width: 1.5px;
-  border-radius: 5px;
-  background: rgba(27, 58, 35, 0.9);
-}
-
-.pitch.dragging .empty.quiet span {
-  opacity: 1;
-}
-
-.empty[data-tier='starter'] {
-  border-color: var(--chalk);
-  background: rgba(16, 26, 20, 0.45);
-}
-
-/* ---------- Player chip ---------- */
-
-.chip {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 2.2em 13px;
+  grid-template-columns: 9px minmax(0, 1fr) 17px 21px 21px 35px;
   align-items: center;
   gap: 4px;
   width: 100%;
-  min-height: 28px;
-  padding: 4px 7px;
-  border-radius: 5px;
-  border: 1.5px solid var(--chalk);
-  background: transparent;
-  color: var(--chalk);
+  min-height: 27px;
+  padding: 0 5px 0 8px;
+}
+
+.chip {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--chalk-2);
   text-align: left;
-  font-size: 13px;
+  font: 500 15px/1.2 var(--cond);
   cursor: grab;
-  transition: box-shadow 0.15s, background 0.15s;
+  transition: background 0.15s;
+}
+
+.tier:last-child .chip {
+  border-radius: 0 0 7px 7px;
+}
+
+.chip .t,
+.empty .t {
+  font: 500 12px var(--ui);
+  color: var(--chalk-3);
 }
 
 .chip .name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* Room for descenders (q, y, g) under the clip. */
-  font: 500 14.5px/1.2 var(--cond);
-  letter-spacing: 0.005em;
+}
+
+.chip .name .icon {
+  margin-right: 2px;
+  color: var(--amber);
+  vertical-align: -1px;
+}
+
+.chip .fam {
+  margin-left: 4px;
+  font: 500 11.5px var(--ui);
+  color: var(--chalk-3);
+}
+
+.chip .age,
+.chip .abl,
+.chip .pot,
+.chip .contract {
+  text-align: right;
+  font-weight: 600;
+}
+
+.chip .age,
+.chip .pot {
+  color: var(--chalk-3);
+}
+
+.chip .age.old {
+  color: var(--amber-text);
+}
+
+.chip .abl {
+  color: var(--chalk);
 }
 
 .chip[data-tier='starter'] {
-  background: var(--chalk);
-  color: var(--ink);
+  color: var(--chalk);
   font-weight: 600;
-  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.45);
-  --star-fill: var(--star-on-chalk);
-}
-
-.chip[data-tier='starter'] .name {
-  font-weight: 700;
-}
-
-.chip[data-tier='backup'] {
-  background: var(--turf-chip);
-}
-
-.chip[data-tier='depth'] {
-  border-style: dashed;
-  border-color: var(--chalk-2);
-  background: var(--turf-chip-deep);
 }
 
 .chip:hover {
-  box-shadow: 0 0 0 2px rgba(239, 236, 226, 0.35);
+  background: var(--raise);
 }
 
 .chip.selected {
-  box-shadow: 0 0 0 3px var(--focus);
+  background: var(--raise);
+  box-shadow: inset 0 0 0 2px var(--focus);
 }
 
 .chip .contract,
 .row-btn .contract {
   justify-self: end;
-  font: 600 13px/1 var(--cond);
+  font: 600 14px/1.35 var(--cond);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
+.chip .contract {
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 13.5px;
+}
+
 .contract[data-state='warning'] {
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
   background: var(--amber);
   color: var(--ink);
 }
 
 .contract[data-state='critical'] {
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
   background: var(--red-fill);
   color: #fff;
 }
 
+/* Gone by this season: kept in place, in greyscale. */
 .chip.left {
   filter: grayscale(1);
-  opacity: 0.6;
-  grid-template-columns: minmax(0, 1fr) auto;
+  opacity: 0.55;
 }
 
-.chip.left app-stars,
-.chip.left app-familiarity {
+.chip.target .contract {
+  color: var(--amber-text);
+  font-size: 13px;
+}
+
+.empty {
+  font: 500 12.5px var(--ui);
+  color: var(--chalk-3);
+}
+
+.empty.gap .open {
+  color: var(--earth-text);
+}
+
+.empty .drop-hint {
   display: none;
 }
 
-.chip.left .contract {
-  color: inherit;
-  font-size: 12px;
+.pitch.dragging .empty {
+  outline: 1.5px dashed rgb(239 236 226 / 45%);
+  outline-offset: -3px;
 }
 
-.chip.target {
-  border: 1.5px dashed var(--amber);
-  background: rgba(224, 163, 58, 0.16);
+.pitch.dragging .empty .open {
+  display: none;
+}
+
+.pitch.dragging .empty .drop-hint {
+  display: block;
+  grid-column: 2 / -1;
   color: var(--chalk);
 }
 
-.chip.target[data-tier='starter'] {
-  background: var(--amber);
-  color: var(--ink);
-  border-style: solid;
-  --star-fill: var(--ink);
+/* Narrower desktops drop potential from the cards; it stays in the details and the squad. */
+@media (min-width: 761px) and (max-width: 1360px) {
+  .chip,
+  .empty {
+    grid-template-columns: 9px minmax(0, 1fr) 17px 21px 35px;
+  }
+
+  .chip .pot {
+    display: none;
+  }
 }
 
-.chip .target-mark {
-  display: inline-flex;
+/* The side panel's cover table: positions down, seasons across. */
+.cover {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cover th,
+.cover td {
+  height: 26px;
+  border-top: 1px solid var(--raise);
+  font: 600 15px var(--cond);
+}
+
+.cover thead th {
+  height: auto;
+  padding-bottom: 5px;
+  border-top: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--chalk-3);
+}
+
+.cover thead th.on {
+  color: var(--chalk);
+}
+
+.cover tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cover tbody th small {
+  font: 500 11.5px var(--ui);
+  color: var(--chalk-3);
+}
+
+.cover td {
+  text-align: center;
+}
+
+.cover td span {
+  display: inline-block;
+  min-width: 36px;
+  border-radius: 4px;
+  line-height: 20px;
+}
+
+.cover td[data-n='1'] span {
+  background: rgb(180 140 90 / 30%);
+  color: var(--earth-text);
+}
+
+.cover td[data-n='0'] span {
+  background: var(--earth);
+  color: var(--ink);
+}
+
+.row-fig {
+  font: 600 15px var(--cond);
+  white-space: nowrap;
+}
+
+.row-fig small {
+  font: 500 13px var(--cond);
+  color: var(--chalk-3);
 }
 
 /* ---------- Drag states (Angular CDK) ---------- */
@@ -1033,6 +1096,12 @@ input {
 .cdk-drag-preview .chip,
 .cdk-drag-preview .row-btn {
   cursor: grabbing;
+}
+
+.cdk-drag-preview .chip {
+  border-radius: 5px;
+  background: var(--raise);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .cdk-drag-preview .row-btn {
@@ -1051,8 +1120,8 @@ input {
 
 .tiers.cdk-drop-list-dragging {
   outline: 2px dashed rgba(239, 236, 226, 0.4);
-  outline-offset: 3px;
-  border-radius: 6px;
+  outline-offset: 2px;
+  border-radius: 0 0 7px 7px;
 }
 
 .notice {
@@ -1064,11 +1133,6 @@ input {
   color: var(--chalk-2);
 }
 
-.defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-}
 
 /* ---------- Side panel ---------- */
 
@@ -1354,6 +1418,20 @@ input {
   font: 600 22px/1 var(--cond);
 }
 
+.facts dd.figs {
+  gap: 0;
+  font: 600 22px/1 var(--cond);
+}
+
+.facts dd.figs .muted {
+  font-size: 18px;
+}
+
+.facts dd.figs .ability-bar {
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
 .contract-line[data-state='warning'] {
   color: var(--amber);
 }
@@ -1623,7 +1701,7 @@ input {
 
 .board-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 2.2em;
+  grid-template-columns: minmax(0, 1fr) auto 3em;
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
@@ -1631,7 +1709,12 @@ input {
 }
 
 .leaving .board-row {
-  grid-template-columns: minmax(0, 1fr) 2.2em;
+  grid-template-columns: minmax(0, 1fr) 3em;
+}
+
+.board-row .figs {
+  font: 600 15px var(--cond);
+  white-space: nowrap;
 }
 
 .who {
@@ -2564,21 +2647,6 @@ dialog.confirm::backdrop {
     translate: none;
   }
 
-  .wear-layer {
-    display: none;
-  }
-
-  .slot.worn {
-    margin: 0 -6px;
-    padding: 6px;
-    border-radius: 10px;
-    background: radial-gradient(closest-side, var(--earth) 0 60%, rgba(160, 122, 76, 0.7) 85%, transparent) center / 120% 140% no-repeat;
-  }
-
-  .slot-head .twin {
-    display: inline;
-    color: var(--chalk);
-  }
 
   .side {
     padding: 16px;

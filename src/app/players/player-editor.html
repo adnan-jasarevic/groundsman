@@ -111,7 +111,7 @@
             </div>
           </div>
           <p class="ef-stars" id="ef-stars-note">
-            <app-stars [ability]="ability()" [potential]="potential()" [potentialMax]="potentialMax()" [size]="13" />
+            <app-ability-bar [ability]="ability()" [potential]="potential()" [potentialMax]="potentialMax()" />
             @if (tried() && problems().has('potential')) {
               <span class="ef-error">Potential can't be below ability.</span>
             } @else if (fmSays('ability'); as fm) {
