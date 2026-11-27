@@ -1,0 +1,225 @@
+<div class="timeline">
+  <header class="topbar tl-top">
+    <h1>Season timeline</h1>
+    <p class="tl-plan">
+      From your <a routerLink="/depth-chart">depth chart</a>: <b>{{ store.formation().name }}</b>,
+      {{ store.tiers() }} tiers
+    </p>
+    <ul class="tl-legend" aria-label="Key">
+      <li><i data-state="warning"></i>2 years left</li>
+      <li><i data-state="critical"></i>Last season</li>
+      <li><i class="old"></i>33 or older</li>
+      <li><i class="worn"></i>No cover</li>
+    </ul>
+  </header>
+
+  <ng-template #chip let-e let-starter="starter">
+    <span
+      class="tl-chip"
+      [class.starter]="starter"
+      [class.target]="e.player.target"
+      [attr.data-state]="e.contract"
+    >
+      @if (e.player.target) {
+        <app-icon name="target" [size]="13" />
+      }
+      <span class="tl-nm">{{ e.name }}</span>
+      <span class="tl-age" [class.old]="e.ageing"
+        ><span class="sr-only">age </span>{{ e.age }}</span
+      >
+      @if (contractNote(e.contract); as t) {
+        <span class="sr-only">, {{ t }}</span>
+      }
+    </span>
+  </ng-template>
+
+  <ng-template #gone let-names>
+    @for (n of names; track n) {
+      <span class="tl-gone">{{ n }} left</span>
+    }
+  </ng-template>
+
+  <!-- Desktop and tablet: positions down, seasons across. -->
+  <div class="tl-wrap">
+    <table class="tl-grid">
+      <caption class="sr-only">
+        Players in each position over the next
+        {{
+          seasons().length
+        }}
+        seasons
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col" class="tl-pos">Position</th>
+          @for (s of seasons(); track s.season) {
+            <th scope="col">
+              <span class="tl-sl"
+                >{{ s.label }}
+                @if (s.now) {
+                  <span class="now">Now</span>
+                }
+              </span>
+              <span class="flag-strip-counts">
+                @if (s.critical) {
+                  <span class="crit">{{ s.critical }} critical</span>
+                }
+                @if (s.warning) {
+                  <span class="warn">{{ s.warning }} to watch</span>
+                }
+                @if (!s.critical && !s.warning) {
+                  <span class="ok">All clear</span>
+                }
+              </span>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <th scope="row" class="tl-pos">
+              {{ row.label }}
+              @if (row.twin) {
+                <span class="twin">{{ row.twin }}</span>
+              }
+            </th>
+            @for (cell of row.cells; track cell.season) {
+              <td [class.worn]="cell.thin">
+                <div class="tl-cell">
+                  @for (e of cell.players; track e.player.id; let k = $index) {
+                    <ng-container
+                      *ngTemplateOutlet="chip; context: { $implicit: e, starter: k === 0 }"
+                    />
+                  }
+                  <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
+                  @if (cell.thin) {
+                    <span class="tag earth">{{
+                      cell.thin === 'empty' ? 'Empty' : 'No cover'
+                    }}</span>
+                  }
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+      @if (store.bench().length) {
+        <tbody class="tl-unplaced">
+          <tr>
+            <th scope="row" class="tl-pos">Not in the plan</th>
+            @for (cell of unplaced(); track cell.season) {
+              <td>
+                <div class="tl-cell">
+                  @for (e of cell.players; track e.player.id) {
+                    <ng-container
+                      *ngTemplateOutlet="chip; context: { $implicit: e, starter: false }"
+                    />
+                  }
+                  <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
+                </div>
+              </td>
+            }
+          </tr>
+        </tbody>
+      }
+    </table>
+  </div>
+
+  <!-- Phones: how many are left per season; tap a position for the names. -->
+  <div class="tl-phone">
+    <p class="tl-hint">Players left in each position. Tap a row for names.</p>
+    <div class="tl-ph-head" aria-hidden="true">
+      <span></span>
+      @for (s of seasons(); track s.season) {
+        <span
+          >{{ s.short }}
+          @if (s.now) {
+            <i>Now</i>
+          }
+        </span>
+      }
+    </div>
+    @for (row of rows(); track row.id) {
+      <ng-container
+        *ngTemplateOutlet="
+          phoneRow;
+          context: {
+            id: row.id,
+            label: row.label,
+            twin: row.twin,
+            sub: row.starter,
+            cells: row.cells,
+            thin: true,
+          }
+        "
+      />
+    }
+    @if (store.bench().length) {
+      <ng-container
+        *ngTemplateOutlet="
+          phoneRow;
+          context: {
+            id: 'unplaced',
+            label: 'Not in the plan',
+            twin: '',
+            sub: '',
+            cells: unplaced(),
+            thin: false,
+          }
+        "
+      />
+    }
+  </div>
+
+  <ng-template
+    #phoneRow
+    let-id="id"
+    let-label="label"
+    let-twin="twin"
+    let-sub="sub"
+    let-cells="cells"
+    let-thin="thin"
+  >
+    <button
+      type="button"
+      class="tl-ph-row"
+      [class.open]="open() === id"
+      [attr.aria-expanded]="open() === id"
+      [attr.aria-controls]="open() === id ? 'tl-ph-' + id : null"
+      (click)="toggle(id)"
+    >
+      <span class="tl-ph-pos"
+        >{{ label }}
+        @if (twin) {
+          <span class="twin">{{ twin }}</span>
+        }
+        @if (sub) {
+          <small>{{ sub }}</small>
+        }
+      </span>
+      @for (cell of cells; track cell.season; let i = $index) {
+        <span class="tl-ph-n" [class.worn]="thin && cell.thin">
+          <span class="sr-only">{{ seasons()[i].label }}: </span>{{ cell.players.length }}
+        </span>
+      }
+    </button>
+    @if (open() === id) {
+      <div class="tl-ph-detail" [id]="'tl-ph-' + id">
+        @for (cell of cells; track cell.season; let i = $index) {
+          <div>
+            <b>{{ seasons()[i].label }}</b>
+            @for (e of cell.players; track e.player.id; let k = $index) {
+              <ng-container
+                *ngTemplateOutlet="chip; context: { $implicit: e, starter: thin && k === 0 }"
+              />
+            } @empty {
+              <span class="tl-none">Nobody</span>
+            }
+            <ng-container *ngTemplateOutlet="gone; context: { $implicit: cell.gone }" />
+          </div>
+        }
+      </div>
+    }
+  </ng-template>
+</div>

@@ -136,7 +136,8 @@ export function seasonFlags(
     if (active.length === 0) {
       flags.push({ kind: 'empty', severity: 'critical', text: `${label} has nobody left to play there`, slotId: slot.id });
     } else if (active.length === 1) {
-      const leaver = ids.map((id) => byId.get(id)).find((p) => p && contractState(p, season, style) === 'left');
+      // Name the leaver only in the season they go; later seasons just say the cover is missing.
+      const leaver = ids.map((id) => byId.get(id)).find((p) => p && seasonsLeft(p, season, style) === 0);
       flags.push({
         kind: 'no-cover',
         severity: 'critical',

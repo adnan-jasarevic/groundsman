@@ -161,4 +161,12 @@ describe('auto plan and flags', () => {
     const flags = seasonFlags(formation, plan, byId, 2026, 2027, 'split');
     expect(flags.some((f) => f.kind === 'no-cover' || f.kind === 'empty')).toBe(true);
   });
+
+  it('names a leaver only in the season they go', () => {
+    const at = (season: number) =>
+      seasonFlags(formation, plan, byId, 2026, season, 'split').find((f) => f.slotId === 'dcr')
+        ?.text;
+    expect(at(2027)).toBe('D (C) has no backup after Hallström leaves');
+    expect(at(2028)).toBe('D (C) has no backup');
+  });
 });
