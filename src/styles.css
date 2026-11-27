@@ -3064,6 +3064,45 @@ dialog.editor::backdrop {
   padding: 6px 24px 0;
 }
 
+/* The squad in one line of figures, read before the table. */
+.sq-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  margin: 0;
+  padding: 14px 24px 0;
+}
+
+.sq-sum div {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.sq-sum dt {
+  font-size: 13px;
+  color: var(--chalk-3);
+}
+
+.sq-sum dd {
+  margin: 0;
+  font: 700 19px/1 var(--cond);
+  color: var(--chalk);
+}
+
+.sq-sum .critical dd {
+  color: var(--red-text);
+}
+
+.sq-sum .warning dd {
+  color: var(--amber-text);
+}
+
+.sq-sum .ageing dd {
+  color: var(--amber-text);
+}
+
 .sq-wrap {
   min-width: 0;
   padding: 0 24px 32px;
@@ -3080,15 +3119,19 @@ dialog.editor::backdrop {
   position: sticky;
   z-index: 1;
   top: 0;
-  padding: 10px 10px 8px;
+  padding: 10px 8px 8px;
   border-bottom: 1px solid var(--line);
   background: var(--shell);
   text-align: left;
-  font: 600 12px/1 var(--cond);
+  font: 600 12.5px/1 var(--cond);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--chalk-3);
   white-space: nowrap;
+}
+
+.sq thead abbr {
+  text-decoration: none;
 }
 
 .sq .sort {
@@ -3121,7 +3164,8 @@ dialog.editor::backdrop {
 
 .sq tbody th,
 .sq td {
-  padding: 6px 10px;
+  height: 34px;
+  padding: 0 8px;
   border-bottom: 1px solid var(--raise);
   text-align: left;
   font-weight: 400;
@@ -3129,11 +3173,20 @@ dialog.editor::backdrop {
 }
 
 .sq tr.group th {
-  padding: 16px 10px 6px;
+  height: auto;
+  padding: 18px 8px 7px;
   border-bottom: 1px solid var(--line);
-  font: 600 13px/1 var(--cond);
-  letter-spacing: 0.1em;
+  font: 700 14px/1 var(--cond);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--chalk-2);
+}
+
+.sq .g-sum {
+  margin-left: 8px;
+  font: 400 13px var(--ui);
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--chalk-3);
 }
 
@@ -3147,18 +3200,100 @@ dialog.editor::backdrop {
 }
 
 .sq .nm {
-  display: grid;
-  font: 500 15px/1.2 var(--cond);
+  font: 600 15.5px/1.2 var(--cond);
   letter-spacing: 0.005em;
 }
 
 .sq .nm small {
-  font: 400 12px var(--ui);
+  margin-left: 3px;
+  font: 500 12px var(--ui);
+  letter-spacing: 0.03em;
   color: var(--chalk-3);
 }
 
 .sq td.num {
+  font: 600 15.5px var(--cond);
+}
+
+.sq td.dim {
+  color: var(--chalk-3);
+}
+
+.sq td.ageing {
+  color: var(--amber-text);
+}
+
+.sq .best {
   font: 600 15px var(--cond);
+}
+
+.sq .also {
+  font: 500 15px var(--cond);
+  color: var(--chalk-3);
+}
+
+.sq .c-bar {
+  width: 1%;
+}
+
+/* Ability over potential on a five-star track. */
+.ability-bar {
+  position: relative;
+  display: block;
+  width: 50px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.ability-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+}
+
+.ability-bar .pot {
+  background: color-mix(in srgb, var(--chalk) 32%, transparent);
+}
+
+.ability-bar .now {
+  background: var(--chalk);
+}
+
+/* Contract runway: one cell per planned season, under the season names. */
+.sq .run {
+  display: grid;
+  grid-template-columns: repeat(4, 52px);
+  gap: 3px;
+}
+
+.sq thead .run span {
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.sq thead .run span.on {
+  color: var(--chalk);
+}
+
+.sq .run i {
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--chalk) 22%, transparent);
+}
+
+.sq .run i[data-state='gone'] {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.sq .run i[data-state='warning'] {
+  background: var(--amber);
+}
+
+.sq .run i[data-state='critical'] {
+  background: var(--red);
 }
 
 .sq .yr {
@@ -3348,7 +3483,8 @@ dialog.editor::backdrop {
     grid-column: 1 / -1;
   }
 
-  .sq .c-plan {
+  .sq .c-plan,
+  .sq .c-bar {
     display: none;
   }
 }
@@ -3402,9 +3538,32 @@ dialog.editor::backdrop {
     padding: 0 16px 24px;
   }
 
-  .sq .c-pos,
-  .sq .c-abil {
+  .sq-sum {
+    gap: 6px 16px;
+    padding: 12px 16px 0;
+  }
+
+  .sq .also,
+  .sq .nm small,
+  .sq .c-pot,
+  .sq .c-run {
     display: none;
+  }
+
+  .sq tbody th,
+  .sq td,
+  .sq thead th {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .sq tr.group th {
+    white-space: normal;
+  }
+
+  .sq .g-sum {
+    display: block;
+    margin: 4px 0 0;
   }
 
   .yours-also li {

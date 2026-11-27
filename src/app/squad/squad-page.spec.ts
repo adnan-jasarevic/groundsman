@@ -47,7 +47,9 @@ describe('Squad and the edit sheet', () => {
   it('lists the squad by position group and filters by name', async () => {
     const { fixture, el } = await open('/squad');
     const groups = [...el.querySelectorAll('.sq tr.group')].map((r) => r.textContent!.trim());
-    expect(groups[0]).toMatch(/^Goalkeepers\s+3$/);
+    expect(groups[0]).toMatch(
+      /^Goalkeepers\s+3\s+avg age 24\.0 · 0 expire this season · 1 next season$/,
+    );
     expect(el.querySelectorAll('.sq tbody tr:not(.group)').length).toBe(mine.players.length);
 
     type(el.querySelector('.search input')!, 'hallstrom');
@@ -55,6 +57,47 @@ describe('Squad and the edit sheet', () => {
     const rows = el.querySelectorAll('.sq tbody tr:not(.group)');
     expect(rows.length).toBe(1);
     expect(rows[0].textContent).toContain('Mats Hallström');
+  });
+
+  it('sums up the squad and shows figures instead of stars', async () => {
+    const { el } = await open('/squad');
+    const sum = Object.fromEntries(
+      [...el.querySelectorAll('.sq-sum div')].map((d) => [
+        d.querySelector('dt')!.textContent,
+        d.querySelector('dd')!.textContent,
+      ]),
+    );
+    expect(sum).toEqual({
+      Players: '28',
+      'Average age': '25.0',
+      'Expire this season': '3',
+      'Expire next season': '9',
+      'Aged 33 or older': '2',
+    });
+
+    const row = [...el.querySelectorAll('.sq tbody tr')].find((r) =>
+      r.textContent!.includes('Nuno Ferreira'),
+    )!;
+    const cells = [...row.querySelectorAll('td')].map((td) => td.textContent!.trim());
+    expect(cells.slice(0, 4)).toEqual(['AM (C) M (C), ST (C)', '24', '4.0', '4.5']);
+    expect(row.querySelector('app-stars')).toBeNull();
+  });
+
+  it('draws each contract as a runway across the planned seasons', async () => {
+    const { el } = await open('/squad');
+    const runway = (name: string) => {
+      const row = [...el.querySelectorAll('.sq tbody tr')].find((r) =>
+        r.textContent!.includes(name),
+      )!;
+      return [...row.querySelectorAll('.run i')].map((i) => i.getAttribute('data-state'));
+    };
+    expect(runway('Mats Hallström')).toEqual(['critical', 'gone', 'gone', 'gone']);
+    expect(runway('Rui Teixeira')).toEqual(['on', 'warning', 'gone', 'gone']);
+    expect(runway('Dániel Varga')).toEqual(['on', 'on', 'on', 'on']);
+
+    store.setSeason(2027);
+    TestBed.tick();
+    expect(runway('Rui Teixeira')).toEqual(['on', 'critical', 'gone', 'gone']);
   });
 
   it('edits a player, keeps it after a reload and marks it as edited', async () => {
