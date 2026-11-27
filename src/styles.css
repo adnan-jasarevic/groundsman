@@ -15,6 +15,8 @@
   --earth-deep: #8a6a42;
   --amber: #e0a33a;
   --red: #d65a45;
+  /* Deeper red for filled tags that carry white text (5.5:1). */
+  --red-fill: #b8402d;
   --focus: #f3d27a;
 
   /* Chip fills under chalk: dark turf so pitch lines never show through. */
@@ -296,6 +298,7 @@ input {
   border-radius: 7px;
   background: repeating-linear-gradient(90deg, var(--turf-a) 0 6px, var(--turf-b) 6px 12px);
   font: 700 14px var(--cond);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.04em;
 }
 
@@ -642,10 +645,9 @@ input {
 }
 
 .scrubber .now {
-  font: 600 10px/1 var(--cond);
-  letter-spacing: 0.12em;
+  font: 600 11px/1 var(--cond);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.8;
 }
 
 .scrubber label.on {
@@ -930,7 +932,8 @@ input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 500 14.5px/1 var(--cond);
+  /* Room for descenders (q, y, g) under the clip. */
+  font: 500 14.5px/1.2 var(--cond);
   letter-spacing: 0.005em;
 }
 
@@ -982,7 +985,7 @@ input {
 .contract[data-state='critical'] {
   padding: 2px 4px;
   border-radius: 3px;
-  background: var(--red);
+  background: var(--red-fill);
   color: #fff;
 }
 
@@ -2396,6 +2399,57 @@ dialog.confirm::backdrop {
   }
 }
 
+/* Phone sections: a bottom tab bar in the thumb zone, since the rail's nav is hidden there. */
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .shell:has(.tabbar) {
+    --tabbar-h: 60px;
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+
+  .tabbar {
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--rail);
+    border-top: 1px solid var(--line);
+  }
+
+  .tabbar a {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    border-radius: 6px;
+    color: var(--chalk-2);
+    text-decoration: none;
+    font: 600 16px var(--cond);
+    letter-spacing: 0.02em;
+  }
+
+  .tabbar a:hover {
+    color: var(--chalk);
+  }
+
+  .tabbar a.on {
+    background: var(--raise);
+    color: var(--chalk);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  .shell:has(.tabbar) .import-foot {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 760px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
@@ -2523,6 +2577,7 @@ dialog.confirm::backdrop {
 
   .slot-head .twin {
     display: inline;
+    color: var(--chalk);
   }
 
   .side {
@@ -3117,8 +3172,8 @@ dialog.editor::backdrop {
 }
 
 .sq .yr[data-state='critical'] {
-  background: var(--red);
-  color: var(--chalk);
+  background: var(--red-fill);
+  color: #fff;
 }
 
 .sq .yr[data-state='warning'] {
@@ -3580,7 +3635,7 @@ dialog.editor::backdrop {
 }
 
 .tl-sl .now {
-  font: 600 10px/1 var(--cond);
+  font: 600 11px/1 var(--cond);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--chalk-3);
@@ -3651,7 +3706,7 @@ dialog.editor::backdrop {
 
 .tl-ph-head i {
   display: block;
-  font: 600 9px var(--cond);
+  font: 600 11px var(--cond);
   font-style: normal;
   letter-spacing: 0.1em;
   text-transform: uppercase;

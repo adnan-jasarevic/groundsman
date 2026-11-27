@@ -21,4 +21,16 @@ describe('App', () => {
     expect(el.querySelector('.wordmark')?.textContent).toContain('Groundsman');
     expect(el.querySelector('.save')?.textContent).toContain('Harrowgate Town');
   });
+
+  it('links every section from the phone tab bar', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const tabs = [...(fixture.nativeElement as HTMLElement).querySelectorAll('.tabbar a')];
+    expect(tabs.map((a) => [a.textContent?.trim(), a.getAttribute('href')])).toEqual([
+      ['Depth', '/depth-chart'],
+      ['Squad', '/squad'],
+      ['Timeline', '/season-timeline'],
+      ['Data', '/saves'],
+    ]);
+  });
 });

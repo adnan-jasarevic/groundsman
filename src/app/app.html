@@ -35,5 +35,13 @@
     }
   </nav>
   <router-outlet />
+  @if (store.hasSave()) {
+    <nav class="tabbar" aria-label="Sections">
+      <a routerLink="/depth-chart" routerLinkActive="on" ariaCurrentWhenActive="page">Depth</a>
+      <a routerLink="/squad" routerLinkActive="on" ariaCurrentWhenActive="page">Squad</a>
+      <a routerLink="/season-timeline" routerLinkActive="on" ariaCurrentWhenActive="page">Timeline</a>
+      <a routerLink="/saves" routerLinkActive="on" ariaCurrentWhenActive="page">Data</a>
+    </nav>
+  }
 </div>
 <app-player-editor />
