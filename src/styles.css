@@ -1151,6 +1151,78 @@ input {
   color: var(--amber);
 }
 
+/* Phone only: a closed-by-default summary of the season's flags under the scrubber. */
+.flag-strip {
+  display: none;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--rail);
+}
+
+.flag-strip summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 12px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.flag-strip summary::-webkit-details-marker {
+  display: none;
+}
+
+.flag-strip summary:focus-visible {
+  outline: 2px solid var(--chalk-2);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.flag-strip-title {
+  font: 600 14px/1 var(--cond);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chalk-2);
+}
+
+.flag-strip-counts {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.flag-strip-counts span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font: 600 12px/1 var(--cond);
+  letter-spacing: 0.04em;
+}
+
+.flag-strip-counts .crit {
+  background: rgba(214, 90, 69, 0.16);
+  color: var(--red-text);
+}
+
+.flag-strip-counts .warn {
+  background: rgba(224, 163, 58, 0.13);
+  color: var(--amber-text);
+}
+
+.flag-strip summary .icon {
+  color: var(--chalk-3);
+  transition: rotate 0.2s var(--ease-out);
+}
+
+.flag-strip[open] summary .icon {
+  rotate: 180deg;
+}
+
+.flag-strip .flags {
+  padding: 0 8px 8px;
+}
+
 .list {
   display: grid;
   gap: 2px;
@@ -2405,6 +2477,10 @@ dialog.confirm::backdrop {
     flex: 1;
     min-width: 0;
     padding: 6px 4px 5px;
+  }
+
+  .flag-strip {
+    display: block;
   }
 
   .pitch-wrap {

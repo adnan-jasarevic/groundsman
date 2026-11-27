@@ -40,6 +40,27 @@
         </label>
       }
     </fieldset>
+
+    @if (store.flags().length) {
+      <details class="flag-strip">
+        <summary>
+          <span class="flag-strip-title">{{ store.seasonText(store.season()) }} flags</span>
+          <span class="flag-strip-counts">
+            @if (flagCounts().critical) { <span class="crit">{{ flagCounts().critical }} critical</span> }
+            @if (flagCounts().warning) { <span class="warn">{{ flagCounts().warning }} to watch</span> }
+          </span>
+          <app-icon name="chevron" [size]="16" />
+        </summary>
+        <ul class="flags">
+          @for (f of store.flags(); track f.text) {
+            <li [attr.data-severity]="f.severity" [attr.data-kind]="f.kind">
+              <app-icon [name]="flagIcon(f)" />
+              <span>{{ f.text }}</span>
+            </li>
+          }
+        </ul>
+      </details>
+    }
   </header>
 
   <div class="work">
@@ -104,7 +125,7 @@
             <ul class="flags">
               @for (f of store.flags(); track f.text) {
                 <li [attr.data-severity]="f.severity" [attr.data-kind]="f.kind">
-                  <app-icon [name]="f.kind === 'ageing' ? 'hourglass' : f.kind.startsWith('contract') ? 'clock' : 'alert'" />
+                  <app-icon [name]="flagIcon(f)" />
                   <span>{{ f.text }}</span>
                 </li>
               }
