@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { editedFields, positionsText } from '../domain/manual-edits';
-import { Player, PositionCode } from '../domain/models';
-import { ageAt } from '../domain/projection';
+import { POSITION_LABEL, Player, PositionCode } from '../domain/models';
+import { ageAt, ContractState, contractState, isAgeing } from '../domain/projection';
 import { PlanStore, tierName } from '../state/plan-store';
 import { Icon } from '../ui/icon';
-import { Stars } from '../ui/stars';
+import { AbilityBar, potentialText, rating } from '../ui/figures';
 
 type Group = 'gk' | 'def' | 'mid' | 'fwd';
-type SortKey = 'name' | 'age' | 'ability' | 'contract';
+type SortKey = 'name' | 'age' | 'ability' | 'potential' | 'contract';
 
 const GROUPS: { id: Group; label: string; short: string }[] = [
   { id: 'gk', label: 'Goalkeepers', short: 'GK' },
@@ -67,7 +67,7 @@ function fold(text: string): string {
 @Component({
   selector: 'app-squad-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Stars],
+  imports: [Icon, AbilityBar],
   templateUrl: './squad-page.html',
   host: { class: 'page' },
 })
@@ -102,10 +102,29 @@ export class SquadPage {
         players.sort(
           (a, b) => (sort ? sort.dir * this.compare(a, b, sort.key) : 0) || this.byPlace(a, b),
         );
-        return { ...g, players };
+        return { ...g, players, tally: this.tally(players) };
       })
       .filter((s) => s.players.length);
   });
+
+  /** Players still under contract in the selected season. */
+  private readonly active = computed(() =>
+    this.store.save().players.filter((p) => this.store.contractOf(p) !== 'left'),
+  );
+
+  /** The line above the table: size, age and what runs out soon. */
+  protected readonly summary = computed(() => {
+    const players = this.active();
+    return {
+      players: players.length,
+      ...this.tally(players),
+      ageing: players.filter((p) => isAgeing(this.age(p))).length,
+    };
+  });
+
+  protected readonly rating = rating;
+  protected readonly potentialText = potentialText;
+  protected readonly isAgeing = isAgeing;
 
   protected readonly shown = computed(() =>
     this.sections().reduce((n, s) => n + s.players.length, 0),
@@ -126,8 +145,55 @@ export class SquadPage {
     return s.dir === 1 ? 'ascending' : 'descending';
   }
 
-  protected positions(p: Player): string {
-    return positionsText(p.positions);
+  protected best(p: Player): string {
+    return POSITION_LABEL[bestPosition(p)];
+  }
+
+  /** The player's other positions, strongest first. */
+  protected others(p: Player): string {
+    const best = bestPosition(p);
+    const rest = { ...p.positions };
+    delete rest[best];
+    return positionsText(rest);
+  }
+
+  /** Average age and expiring contracts for a group of players. */
+  private tally(players: Player[]): { avgAge: string; expiring: number; nextYear: number } {
+    const here = players.filter((p) => this.store.contractOf(p) !== 'left');
+    const ages = here.map((p) => this.age(p));
+    return {
+      avgAge: ages.length ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : '–',
+      expiring: here.filter((p) => this.store.contractOf(p) === 'critical').length,
+      nextYear: here.filter((p) => this.store.contractOf(p) === 'warning').length,
+    };
+  }
+
+  /** Short season names for the contract runway: "26/27" or "2048". */
+  protected shortSeason(season: number): string {
+    const text = this.store.seasonText(season);
+    return text.length > 4 ? text.slice(2) : text;
+  }
+
+  /**
+   * One cell per planned season: under contract, gone, or the final season.
+   * The final season takes the contract colour as seen from the selected season.
+   */
+  protected runway(p: Player): { season: number; state: 'on' | 'gone' | ContractState }[] {
+    const now = this.store.contractOf(p);
+    return this.store.seasons().map((season) => {
+      const state = contractState(p, season, this.store.seasonStyle());
+      if (state === 'left') return { season, state: 'gone' };
+      if (state === 'critical' && (now === 'critical' || now === 'warning')) {
+        return { season, state: now };
+      }
+      return { season, state: 'on' };
+    });
+  }
+
+  protected runwayLabel(p: Player): string {
+    if (!p.contractExpires) return 'No contract date';
+    const left = this.runway(p).filter((c) => c.state !== 'gone').length;
+    return `Under contract for ${left} of the ${this.store.seasons().length} planned seasons`;
   }
 
   protected age(p: Player): number {
@@ -163,6 +229,11 @@ export class SquadPage {
         return a.age - b.age;
       case 'ability':
         return a.ability - b.ability || a.potential - b.potential;
+      case 'potential':
+        return (
+          Math.max(a.potential, a.potentialMax ?? 0) - Math.max(b.potential, b.potentialMax ?? 0) ||
+          a.ability - b.ability
+        );
       case 'contract':
         return (a.contractExpires ?? '9999').localeCompare(b.contractExpires ?? '9999');
     }

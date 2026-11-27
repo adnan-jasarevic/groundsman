@@ -36,6 +36,14 @@
     <button type="button" class="btn primary" (click)="store.edit('new')"><app-icon name="plus" />Add player</button>
   </div>
 
+  <dl class="sq-sum">
+    <div><dt>Players</dt><dd>{{ summary().players }}</dd></div>
+    <div><dt>Average age</dt><dd>{{ summary().avgAge }}</dd></div>
+    <div class="critical"><dt>Expire this season</dt><dd>{{ summary().expiring }}</dd></div>
+    <div class="warning"><dt>Expire next season</dt><dd>{{ summary().nextYear }}</dd></div>
+    <div class="ageing"><dt>Aged 33 or older</dt><dd>{{ summary().ageing }}</dd></div>
+  </dl>
+
   <p class="notice squad-notice">
     <span aria-live="polite">{{ store.notice() }}</span>
     @if (store.undo(); as undo) {
@@ -51,15 +59,27 @@
           <th scope="col" [attr.aria-sort]="ariaSort('name')">
             <button type="button" class="sort" (click)="setSort('name')">Player</button>
           </th>
-          <th scope="col" class="c-pos">Positions</th>
+          <th scope="col">Position</th>
           <th scope="col" class="c-num" [attr.aria-sort]="ariaSort('age')">
             <button type="button" class="sort" (click)="setSort('age')">Age</button>
           </th>
-          <th scope="col" class="c-abil" [attr.aria-sort]="ariaSort('ability')">
-            <button type="button" class="sort" (click)="setSort('ability')">Ability · potential</button>
+          <th scope="col" class="c-num" [attr.aria-sort]="ariaSort('ability')">
+            <button type="button" class="sort" (click)="setSort('ability')"><abbr title="Ability">Abl</abbr></button>
           </th>
+          <th scope="col" class="c-num c-pot" [attr.aria-sort]="ariaSort('potential')">
+            <button type="button" class="sort" (click)="setSort('potential')"><abbr title="Potential">Pot</abbr></button>
+          </th>
+          <th scope="col" class="c-bar"><span class="sr-only">Ability against potential</span></th>
           <th scope="col" [attr.aria-sort]="ariaSort('contract')">
             <button type="button" class="sort" (click)="setSort('contract')">Contract</button>
+          </th>
+          <th scope="col" class="c-run">
+            <span class="sr-only">Seasons under contract</span>
+            <span class="run" aria-hidden="true">
+              @for (s of store.seasons(); track s) {
+                <span [class.on]="store.season() === s">{{ shortSeason(s) }}</span>
+              }
+            </span>
           </th>
           <th scope="col" class="c-plan">In the plan</th>
           <th scope="col"><span class="sr-only">Edit</span></th>
@@ -68,19 +88,28 @@
       @for (section of sections(); track section.id) {
         <tbody>
           <tr class="group">
-            <th scope="colgroup" colspan="7">{{ section.label }} <span class="count">{{ section.players.length }}</span></th>
+            <th scope="colgroup" colspan="10">
+              {{ section.label }} <span class="count">{{ section.players.length }}</span>
+              <span class="g-sum"> avg age {{ section.tally.avgAge }} · {{ section.tally.expiring }} expire this season ·
+                {{ section.tally.nextYear }} next season</span>
+            </th>
           </tr>
           @for (p of section.players; track p.id) {
             <tr [class.left]="store.contractOf(p) === 'left'">
               <th scope="row">
-                <span class="nm">{{ p.name }}
-                  <small>{{ p.nationality || '–' }}@if (p.added) { · added by you }</small>
-                </span>
+                <span class="nm">{{ p.name }}<small> {{ p.nationality || '–' }}@if (p.added) { · added by you }</small></span>
               </th>
-              <td class="c-pos">{{ positions(p) }}</td>
-              <td class="c-num num">{{ age(p) }}</td>
-              <td class="c-abil"><app-stars [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" [size]="11" /></td>
+              <td class="c-pos"><span class="best">{{ best(p) }}</span> <span class="also"> {{ others(p) }}</span></td>
+              <td class="c-num num" [class.ageing]="isAgeing(age(p))">{{ age(p) }}</td>
+              <td class="c-num num">{{ rating(p.ability) }}</td>
+              <td class="c-num num c-pot dim">{{ potentialText(p) }}</td>
+              <td class="c-bar"><app-ability-bar [ability]="p.ability" [potential]="p.potential" [potentialMax]="p.potentialMax" /></td>
               <td><span class="yr" [attr.data-state]="store.contractOf(p)">{{ contractYear(p) }}</span></td>
+              <td class="c-run">
+                <span class="run" role="img" [attr.aria-label]="runwayLabel(p)">
+                  @for (c of runway(p); track c.season) { <i [attr.data-state]="c.state"></i> }
+                </span>
+              </td>
               <td class="c-plan">
                 @if (place(p); as where) { <span class="plan">{{ where }}</span> } @else { <span class="plan none">Bench</span> }
               </td>
@@ -96,7 +125,7 @@
       } @empty {
         <tbody>
           <tr>
-            <td colspan="7" class="sq-empty">
+            <td colspan="10" class="sq-empty">
               @if (query().trim()) { No player matches "{{ query().trim() }}". } @else { Nobody here yet. }
             </td>
           </tr>
